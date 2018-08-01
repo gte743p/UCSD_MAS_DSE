@@ -1,0 +1,115 @@
+{
+		# general parameters
+    'time_resolution': 30,
+    'seed': 1377,
+    'save_dir': '../data/modeling_files',
+    'conn_str_file': '../conf/db_conn_str.txt',
+    'sqlalchemy_conn_str_file': '../conf/sqlalchemy_conn_str.txt',
+
+		# modeling
+    'model_avg_baseline': True,
+    'model_full_random_forest': True,
+    'model_full_knn': True,
+    'model_full_extra_trees': True,
+    'model_full_gradient_boosting': True,
+    'model_full_logistic_regression': True,
+    'model_full_gaussian_nb': True,
+    'model_clusters_random_forest': True,
+    'model_clusters_knn': True,
+    'model_clusters_extra_trees': True,
+    'model_clusters_gradient_boosting': True,
+    'model_clusters_logistic_regression': True,
+    'model_clusters_gaussian_nb': True,
+    'model_clusters_ensemble': True,
+    'target_first_stage': 'level_binary',
+    'target_second_stage': 'level_max',
+    'scoring_metric': 'f1_macro',
+    'tpot_population': 7,
+    'tpot_generations': 3,
+    'tpot_max_eval_time': 15,
+    
+    # clustering
+    # cluster algorithms: MiniBatchKMeans, AffinityPropagation, MeanShift, SpectralClustering, Ward, AgglomerativeClustering, DBSCAN, Birch, HDBSCAN, KMeans
+    'cluster_algorithm': 'KMeans',
+    'cluster_variable': 'level_max',
+    'cluster_method': 'sparse', # 'sparse', 'nonsparse', 'sparse_long'
+    'num_clusters': {
+    		'sparse': 4,
+    		'nonsparse': 5,
+    		'sparse_long': 7
+    },
+    'perform_pca': True,
+
+		# features
+		'add_events': True,
+		'event_attendance_threshold': 25000,
+		'event_active_buffer': 1, # hours		
+		'add_padres': True,
+		'padres_start_window_before': 2, # hours
+		'padres_start_window_after': 0.5, # hours
+		'padres_end_window_before': 0.5, # hours
+		'padres_end_window_after': 1, # hours
+
+		# unskew data
+    'unskew_train': False,
+    'unskew_test': False,
+    'unskew_train_clusters': False,
+    'unskew_test_clusters': False,
+    'unskew_ratio': 10,
+
+		# train val test split
+		'train_test_method': 'date', # 'random', 'date'
+    'model_test_ratio': 0.2, # used for random train_test_method
+		'test_date_start': '06/06/2017',
+		'test_date_end': '06/12/2017',
+		'train_val_method': 'date', # 'random', 'date'
+		'num_cv_folds': 5,
+
+    # write data - delete?
+    'write_pickle_file': False,
+    'output_file': {
+        'filename_base': 'data_processed.pkl', 
+        'format': 'pickle' 
+    },
+
+		# data sampling
+    'segment_queries': {
+        'bounding_box': {
+            'input_nw_corner': '32.725064 N, 117.176791 W',
+            'input_se_corner': '32.707094 N, 117.146235 W'
+        },
+        'cum_seg_pct': 95,
+        'ignore': 1,
+        'radius': {
+            'input_poi': '32.7077 N, 117.1569 W', 'input_radius': 1.0
+        },
+        'road_type': 3,
+        'sample': {
+            'segments_sample': 10
+        },
+        'street': {
+            'input_street': '10th Ave'
+        }
+    },
+
+    'segment_queries_to_run': ['bounding_box', 'cum_seg_pct'],
+
+    'time_queries': {
+        'day_of_week': {
+            'input_dow': 5
+        },
+        'exclude_dates': ['2017-04-15', '2017-04-16', '2017-04-17'],
+        'sample': {
+            'time_sample': 10
+        },
+        'time_window': {
+            'time_window_include': [('06:00:00', '09:00:00'),
+                                    ('15:00:00', '19:00:00'),
+                                    ('21:00:00', '23:00:00')]
+        },
+        'cum_ts_pct': 100,
+    },
+
+    'time_queries_to_run': ['cum_ts_pct']
+    
+}

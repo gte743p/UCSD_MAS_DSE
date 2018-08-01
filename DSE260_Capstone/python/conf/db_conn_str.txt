@@ -1,0 +1,1 @@
+host=localhost dbname=waze_schema user=(*your db username here*) password=(*your db password here*)

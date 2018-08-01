@@ -1,0 +1,199 @@
+\documentclass{article}
+
+\usepackage{fancyhdr}
+\usepackage{extramarks}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{tikz}
+\usepackage[plain]{algorithm}
+\usepackage{algpseudocode}
+\usepackage{enumitem}
+\usepackage{mathtools}
+\usepackage{amssymb}
+\usetikzlibrary{automata,positioning}
+\usepackage{pgfplots}
+\usepackage{graphicx}
+
+
+%
+% Basic Document Settings
+%
+
+\topmargin=-0.45in
+\evensidemargin=0in
+\oddsidemargin=0in
+\textwidth=6.5in
+\textheight=9.0in
+\headsep=0.25in
+
+\linespread{1.1}
+
+\pagestyle{fancy}
+\lhead{\hmwkClass\ \hmwkTitle}
+\rhead{\hmwkAuthorName}
+\lfoot{\lastxmark}
+\cfoot{\thepage}
+
+\renewcommand\headrulewidth{0.4pt}
+\renewcommand\footrulewidth{0.4pt}
+
+\setlength\parindent{0pt}
+
+%
+% Added stuff
+%
+
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}
+\setenumerate[0]{label={(\alph*)}}
+
+\pgfplotsset{my style/.append style={axis x line=middle, axis y line=
+           middle, xlabel={$x$}, ylabel={$y$}, axis equal }}
+
+%
+% Create Problem Sections
+%
+
+\newcommand{\enterProblemHeader}[1]{
+    \nobreak\extramarks{}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
+    \nobreak\extramarks{Problem \arabic{#1} (continued)}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
+}
+
+\newcommand{\exitProblemHeader}[1]{
+    \nobreak\extramarks{Problem \arabic{#1} (continued)}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
+    \stepcounter{#1}
+    \nobreak\extramarks{Problem \arabic{#1}}{}\nobreak{}
+}
+
+\setcounter{secnumdepth}{0}
+\newcounter{partCounter}
+\newcounter{homeworkProblemCounter}
+\setcounter{homeworkProblemCounter}{1}
+\nobreak\extramarks{Problem \arabic{homeworkProblemCounter}}{}\nobreak{}
+
+%
+% Homework Problem Environment
+%
+% This environment takes an optional argument. When given, it will adjust the
+% problem counter. This is useful for when the problems given for your
+% assignment aren't sequential. See the last 3 problems of this template for an
+% example.
+%
+\newenvironment{homeworkProblem}[1][-1]{
+    \ifnum#1>0
+        \setcounter{homeworkProblemCounter}{#1}
+    \fi
+    \section{Problem \arabic{homeworkProblemCounter}}
+    \setcounter{partCounter}{1}
+    \enterProblemHeader{homeworkProblemCounter}
+}{
+    \exitProblemHeader{homeworkProblemCounter}
+}
+
+%
+% Homework Details
+%   - Title
+%   - Due date
+%   - Class
+%   - Section/Time
+%   - Instructor
+%   - Author
+%
+
+\newcommand{\hmwkTitle}{Worksheet\ \#9 - Sampling}
+\newcommand{\hmwkDueDate}{March 17, 2017}
+\newcommand{\hmwkClass}{DSE 210}
+\newcommand{\hmwkClassTime}{}
+\newcommand{\hmwkClassInstructor}{Professor: A. Enis \c{C}etin}
+\newcommand{\hmwkClassTA}{Teaching Assistant: Shivani Agrawal}
+\newcommand{\hmwkAuthorName}{\textbf{Joshua Wilson} \and \textbf{A53228518}}
+
+%
+% Title Page
+%
+
+\title{
+    \vspace{2in}
+    \textmd{\textbf{\hmwkClass:\ \hmwkTitle}}\\
+    \vspace{0.1in}\large{\textit{\hmwkClassInstructor}}\\
+    \vspace{0.1in}\large{\textit{\hmwkClassTA}}
+    \vspace{3in}
+}
+
+\author{\hmwkAuthorName}
+\date{}
+
+\renewcommand{\part}[1]{\textbf{\large Part \Alph{partCounter}}\stepcounter{partCounter}\\}
+
+%
+% Various Helper Commands
+%
+
+% Useful for algorithms
+\newcommand{\alg}[1]{\textsc{\bfseries \footnotesize #1}}
+
+% For derivatives
+\newcommand{\deriv}[1]{\frac{\mathrm{d}}{\mathrm{d}x} (#1)}
+
+% For partial derivatives
+\newcommand{\pderiv}[2]{\frac{\partial}{\partial #1} (#2)}
+
+% Integral dx
+\newcommand{\dx}{\mathrm{d}x}
+
+% Alias for the Solution section header
+\newcommand{\solution}{\textbf{\large Solution}}
+
+% Probability commands
+\newcommand{\E}{\mathrm{E}}
+\newcommand{\Var}{\mathrm{Var}}
+\newcommand{\Cov}{\mathrm{Cov}}
+\newcommand{\Bias}{\mathrm{Bias}}
+\newcommand*{\Perm}[2]{{}_{#1}\!P_{#2}}%
+\newcommand*{\Comb}[2]{{}_{#1}C_{#2}}%
+\newcommand\given[1][]{\:#1\vert\:}
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\begin{document}
+
+\maketitle
+
+\pagebreak
+
+\begin{homeworkProblem}[1]
+For a single draw, $p(\text{red}) = \frac{9}{10}$. We can model this as the tossing of a coin with $p = \frac{9}{10}$, so that the distribution of the observed number of positive outcomes in $n$ tosses is $N(np, np(1-p)$.\\ 
+
+The distribution of red marbles in 900 draws with replacement is roughly $N(900 \times \frac{9}{10}, 900 \times \frac{9}{10} \times \frac{1}{10}) = \boxed{N(810, 81)}$.
+\end{homeworkProblem}
+
+\begin{homeworkProblem}[5]
+\begin{enumerate}
+\item
+If $n = 100$, then the standard deviation will be on the order of $\cfrac{1}{\sqrt{n}} = \cfrac{1}{10}$.  Since $p = 0.5$, the specific standard deviation in this case would be roughly $\sqrt{\cfrac{p(1-p)}{n}} = \cfrac{\sqrt{0.5 \times 0.5}}{\sqrt{100}} = \cfrac{0.5}{10} = 0.05$.
+\item
+If $n = 2500$, then the standard deviation will be on the order of $\cfrac{1}{\sqrt{n}} = \cfrac{1}{50}$.  Since $p = 0.5$, the specific standard deviation in this case would be roughly $\sqrt{\cfrac{p(1-p)}{n}} = \cfrac{\sqrt{0.5 \times 0.5}}{\sqrt{2500}} = \cfrac{0.5}{50} = 0.01$.
+
+\end{enumerate}
+\end{homeworkProblem}
+
+\begin{homeworkProblem}[9]
+Sample 1,000 people, since the demographics in Dallas are the same as in Austin.
+\end{homeworkProblem}
+
+\begin{homeworkProblem}[11]
+\begin{enumerate}
+\item
+We can model the sum as the sum of 100 independent draws.  If $X_i$ is the distribution of numbers in the box, then the sum of 100 draws has the distribution $N(100 \times \hat{\mu_x}, 100 \times \hat{\sigma_x}^2)$.  Since the sum of the 100 draws is 297, $\hat{\mu_x} = \boxed{\frac{297}{100}}$.
+\item
+No; in order to provide a confidence interval we would need to know the sample standard deviation.
+\end{enumerate}
+
+\end{homeworkProblem}
+
+
+\end{document}
+
+
+
+

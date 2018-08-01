@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<title>Traffic in Downtown San Diego</title>
+		<link rel="stylesheet" href="css/style.css" type="text/css"></link>
+		<link rel="stylesheet" href="css/leaflet.css"></link>
+		<link rel="stylesheet" href="css/c3.css">
+		<link rel="stylesheet" href="css/regions.css">
+
+
+		<div id="tooltip" class="hidden">
+			<p><span id="value"></p>
+		</div>
+
+	</head>
+	<body>
+		<h1 id="title">Traffic in Downtown San Diego</h1>
+		<div class="slidecontainer">
+		<select class="select" id="daySelector" onchange="dayChangeFunc()">
+			<option value="Monday">Monday</option>
+			<option value="Tuesday">Tuesday</option>
+			<option value="Wednesday">Wednesday</option>
+			<option value="Thursday">Thursday</option>
+			<option value="Friday">Friday</option>
+			<option value="Saturday">Saturday</option>
+			<option value="Sunday">Sunday</option>
+		</select>
+		
+			12:00am <input type="range" min="0" max="47" value="0" class="slider" id="timeSlider"> 11:30pm
+
+		  <!-- Include Required Prerequisites -->
+<!-- 			<script type="text/javascript" src="http://cdn.jsdelivr.net/jquery/1/jquery.min.js"></script>
+			<script type="text/javascript" src="http://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+			<link rel="stylesheet" type="text/css" href="http://cdn.jsdelivr.net/bootstrap/3/css/bootstrap.css" /> -->
+			 
+			<!-- Include Date Range Picker -->
+			<!-- <script type="text/javascript" src="http://cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.js"></script>
+			<link rel="stylesheet" type="text/css" href="http://cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.css" />
+		  	<p>Date: <input type="text" id="daterange" name="daterange" value="06/01/2017 - 06/30/2017" /></p>  -->
+
+<!-- 		  	<script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+			<script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+			<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+			<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+		  	<p>Date: <input type="text" name="daterange" value="06/18/2017 - 06/24/2017" /></p> -->
+		</div>
+
+		<br>
+		
+		<div id="title1"> <h2>Actual Traffic </h2> </div>
+		<div id="title2"> <h2>Predicted Traffic on  
+				<select class="select" id="predictorSelector" onchange="predictorChangeFunc()">
+				<option value="level_max_preds_full_baseline">level_max_preds_full_baseline</option>
+				<option value="level_max_preds_cluster_baseline">level_max_preds_cluster_baseline</option>
+				<option value="level_max_preds_avg_baseline">level_max_preds_avg_baseline</option>
+				</select>
+			Model </h2> 
+			<div> <br> </div>
+		</div>
+		<div id="mapid"> </div>
+		<div id="mapid2"> </div>
+
+		<div id="title1"> <br/> </div>
+		<div id="title2"> <br/> </div>
+		<div id="title1"> <h3>Actual Traffic Heatmap </h3> </div>
+		<div id="title2"> <h3>Predicted Traffic Heatmap </h3> </div>
+		<div id="hmap"> </div>
+		<div id="hmap2"> </div>
+<!-- 
+		<div id="c3chart_time"></div>
+		<div id="c3chart_days"></div> -->
+
+		<script src="js/leaflet.js"></script>
+		<script src="js/L.Map.Sync.js"></script> 
+		<script src="js/d3.v3.min.js" charset="utf-8"></script>
+		<script src="js/c3.min.js"></script>
+		<!--<script src="js/lodash.js"></script>-->
+		<script src="js/timestamp_lookup.js" type="text/javascript"></script>
+		<script src="js/colormaps.js" type="text/javascript"></script>
+		<script src="js/boundingbox.js" type="text/javascript"></script>
+		<script src="js/segment_preds_geojson.js" type="text/javascript"></script>
+<!-- 		<script src="js/draw_c3_day.js"></script>
+		<script src="js/draw_c3_time.js"></script>
+ -->		<script src="js/draw_heatmap.js"></script>
+		<script src="js/draw_legend.js"></script>
+		<!-- <script src="js/daterange.js"></script> -->
+		<script src="js/script.js"></script>
+	</body>
+</html>

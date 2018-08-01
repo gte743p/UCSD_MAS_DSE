@@ -1,0 +1,360 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Cluster module &#8212; DSE_capstone 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">DSE_capstone 0.1 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-Cluster">
+<span id="cluster-module"></span><h1>Cluster module<a class="headerlink" href="#module-Cluster" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="Cluster.Cluster">
+<em class="property">class </em><code class="descclassname">Cluster.</code><code class="descname">Cluster</code><span class="sig-paren">(</span><em>conn</em>, <em>args</em>, <em>data</em>, <em>split_type</em>, <em>num_clusters</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Cluster.html#Cluster"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Cluster.Cluster" title="Permalink to this definition">¶</a></dt>
+<dd><p>Data and methods to cluster traffic data for modeling.</p>
+<p>This class is used to cluster traffic data by 1 or more methods and store the clusters
+in a table for use by other objects.</p>
+<p>Available clustering methods:
+MiniBatchKMeans:         Select all segments within a given radius of a provided point.</p>
+<p>AffinityPropagation:   Select all segments with a given bounding box.</p>
+<p>MeanShift:         Select a random sample of the provided percent from all segments.</p>
+<p>SpectralClustering:         Select all segments on a given street name.</p>
+<p>Ward:      Select all segments of a given road type.</p>
+<p>AgglomerativeClustering:         Select all segments with an Ignore flag of True.</p>
+<p>DBSCAN:    Select all segments such that the provided percent of positive traffic points are retained.</p>
+<p>Birch:    Select all segments such that the provided percent of positive traffic points are retained.</p>
+<p>HDBSCAN:    Select all segments such that the provided percent of positive traffic points are retained.</p>
+<p>KMeans:    Select all segments such that the provided percent of positive traffic points are retained.</p>
+<p>This class will be used in the Pipeline notebook for exploration purposes and in the Production
+python code used to perform the actual clustering and modeling of traffic data.</p>
+<dl class="method">
+<dt id="Cluster.Cluster.create_nonsparse_matrix">
+<code class="descname">create_nonsparse_matrix</code><span class="sig-paren">(</span><em>matrix_df</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Cluster.html#Cluster.create_nonsparse_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Cluster.Cluster.create_nonsparse_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create non-sparse matrix for use in clustering the data.</p>
+<p>In addition to creating and returning the non-sparse matrix, this function also writes the non-sparse matrix
+to the database for use in assigning clusters to new data at a later time. It creates database tables
+clust_nonsparse_avebysegment_[split_type] and clust_nonsparse_avebyrt_[split_type] for use in clustering the
+data. Nonsparse matrix feature array for each segment-time record contains all features in matrix_df.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>matrix_df</strong> – Pandas data frame containing all relevant segments and time buckets.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">tuple of 2 data frames. 1. Unique segments 2. The non-sparse matrix.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Cluster.Cluster.create_sparse_matrix">
+<code class="descname">create_sparse_matrix</code><span class="sig-paren">(</span><em>matrix_df</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Cluster.html#Cluster.create_sparse_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Cluster.Cluster.create_sparse_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create sparse matrix for use in clustering the data.</p>
+<p>In addition to creating and returning the sparse matrix, this function also writes the sparse matrix
+to the database for use in assigning clusters to new data at a later time. it creates database tables
+clust_sparse_avebysegment_[split_type] and clust_sparse_avebyrt_[split_type] for use in clustering the data.
+Sparse matrix feature array for each segment contains the cluster variable average over a time array of one week.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>matrix_df</strong> – Pandas data frame containing all relevant segments and time buckets.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">tuple of 2 data frames. 1. Unique segments 2. The sparse matrix.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Cluster.Cluster.create_sparse_matrix_long">
+<code class="descname">create_sparse_matrix_long</code><span class="sig-paren">(</span><em>matrix_df</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Cluster.html#Cluster.create_sparse_matrix_long"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Cluster.Cluster.create_sparse_matrix_long" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create sparse matrix in long format for use in clustering the data.</p>
+<p>In addition to creating and returning the long format sparse matrix, this function also writes the sparse matrix
+to the database for use in assigning clusters to new data at a later time. It create database tables
+clust_sparse_long_avebysegment_[split_type] and clust_sparse_long_avebyrt_[split_type] for use in clustering
+the data. Sparse matrix feature array for each segment contains cluster variable over a time array of
+non-aggregated timespan of the dataset.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>matrix_df</strong> – Pandas data frame containing all relevant segments and time buckets.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">tuple of 2 data frames. 1. Unique segments 2. The sparse matrix.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Cluster.Cluster.run_PCA">
+<code class="descname">run_PCA</code><span class="sig-paren">(</span><em>sparse_matrix</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Cluster.html#Cluster.run_PCA"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Cluster.Cluster.run_PCA" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform PCA on the given sparse matrix.</p>
+<p>Perform PCA on the given sparse matrix and dump the PCA object to a pickle file. Sparse matrix feature array
+for each segment contains the cluster variable average over a time array of one week.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>sparse_matrix</strong> – spare matrix as created by self.create_sparse_matrix</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The transformed data to cluster and the PCA model.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Cluster.Cluster.run_PCA_long">
+<code class="descname">run_PCA_long</code><span class="sig-paren">(</span><em>sparse_matrix</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Cluster.html#Cluster.run_PCA_long"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Cluster.Cluster.run_PCA_long" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform PCA on the given sparse long format matrix.</p>
+<p>Perform PCA on the given long format sparse matrix and dump the PCA object to a pickle file. The long format
+sparse matrix feature array for each segment contains cluster variable over time array of non-agreggated
+timespan of the dataset.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>sparse_matrix</strong> – spare matrix as created by self.create_sparse_matrix_long</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The transformed data to cluster and the PCA model.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Cluster.Cluster.scale_matrix">
+<code class="descname">scale_matrix</code><span class="sig-paren">(</span><em>matrix_df</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Cluster.html#Cluster.scale_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Cluster.Cluster.scale_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Standardize matrix feature columns using sklearn.preprocessing.scale.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>matrix_df</strong> – Data frame of all segment and time combinations and feature columns.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Data frame containing only feature columns with scaled values.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Cluster.Cluster.test_assign_clusters_nonsparse">
+<code class="descname">test_assign_clusters_nonsparse</code><span class="sig-paren">(</span><em>new_data</em>, <em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Cluster.html#Cluster.test_assign_clusters_nonsparse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Cluster.Cluster.test_assign_clusters_nonsparse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assign clusters to a new non-sparse matrix dataframe.</p>
+<p>This function assigns clusters to the provided non-sparse matrix using the current clustering model
+and returns the non-sparse matrix with the assigned clusters.
+It reads the feature array for segments from database table clust_nonsparse_avebysegment_[split_type] (segment averages)
+if the segment exists or from clust_nonsparse_avebyrt_[split_type] (road type averages) if segment is new.
+It then loads the cluster model from the pickle file amd assigns clusters to the provided data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>new_data</strong> – New data in non-sparse matrix format to assign clusters to.</li>
+<li><strong>filename</strong> – Filename of saved clustiern model pickle file.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">dataframe of the non-sparse matrix with each row’s assigned cluster.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Cluster.Cluster.test_assign_clusters_sparse">
+<code class="descname">test_assign_clusters_sparse</code><span class="sig-paren">(</span><em>new_data</em>, <em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Cluster.html#Cluster.test_assign_clusters_sparse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Cluster.Cluster.test_assign_clusters_sparse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assign clusters to a new sparse matrix dataframe.</p>
+<p>This function assigns clusters to the provided sparse matrix using the current clustering model
+and returns the sparse matrix with the assigned clusters.
+It reads the feature array for segments from database table clust_sparse_avebysegment_[split_type] (segment averages)
+if the segment exists or from clust_sparse_avebyrt_[split_type] (road type averages) if segment is new.
+It then loads the cluster model from the pickle file amd assigns clusters to the provided data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>new_data</strong> – New data in sparse matrix format to assign clusters to.</li>
+<li><strong>filename</strong> – Filename of saved clustiern model pickle file.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">dataframe of the sparse matrix with each row’s assigned cluster.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Cluster.Cluster.test_assign_clusters_sparse_long">
+<code class="descname">test_assign_clusters_sparse_long</code><span class="sig-paren">(</span><em>new_data</em>, <em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Cluster.html#Cluster.test_assign_clusters_sparse_long"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Cluster.Cluster.test_assign_clusters_sparse_long" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assign clusters to a new long format sparse matrix dataframe.</p>
+<p>This function assigns clusters to the provided long format sparse matrix using the current clustering model
+and returns the long format sparse matrix with the assigned clusters.
+It reads the feature array for segments from database table clust_sparse_long_avebysegment_[split_type]
+(segment averages) if the segment exists or from clust_sparse_long_avebyrt_[split_type] (road type averages)
+if segment is new. It then loads the cluster model from the pickle file amd assigns clusters to the provided data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>new_data</strong> – New data in long format sparse matrix format to assign clusters to.</li>
+<li><strong>filename</strong> – Filename of saved clustiern model pickle file.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">dataframe of the long format sparse matrix with each row’s assigned cluster.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Cluster.Cluster.train_clustermodel_nonsparse">
+<code class="descname">train_clustermodel_nonsparse</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Cluster.html#Cluster.train_clustermodel_nonsparse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Cluster.Cluster.train_clustermodel_nonsparse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create clustering model from the non-sparse matrix dataframe.</p>
+<p>This function creates the clustering model with the current clustering algorithm
+from either the raw or PCA transformed data as created by self.create_nonsparse_matrix.
+It also saves the model in a pickle file for future use.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Clustering model and a dataframe of the non-sparse matrix with each row’s assigned cluster.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Cluster.Cluster.train_clustermodel_sparse">
+<code class="descname">train_clustermodel_sparse</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Cluster.html#Cluster.train_clustermodel_sparse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Cluster.Cluster.train_clustermodel_sparse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create clustering model from the sparse matrix dataframe.</p>
+<p>Creates the clustering model with the current clustering algorithm from either the raw or PCA transformed
+data as created by self.create_sparse_matrix. It also saves the model in a pickle file for future use.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Clustering model and a dataframe of the sparse matrix with each row’s assigned cluster.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Cluster.Cluster.train_clustermodel_sparse_long">
+<code class="descname">train_clustermodel_sparse_long</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Cluster.html#Cluster.train_clustermodel_sparse_long"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Cluster.Cluster.train_clustermodel_sparse_long" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create clustering model from the long format sparse matrix dataframe.</p>
+<p>This function creates the clustering model with the current clustering algorithm
+from either the raw or PCA transformed data as created by self.create_sparse_matrix_long.
+It also saves the model in a pickle file for future use.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Clustering model and a dataframe of the long format sparse matrix with each row’s assigned cluster.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Cluster.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">DSE_capstone 0.1 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Ken Kroel.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.2.
+    </div>
+  </body>
+</html>

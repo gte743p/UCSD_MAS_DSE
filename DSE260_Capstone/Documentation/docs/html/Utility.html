@@ -1,0 +1,329 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Utility module &#8212; DSE_capstone 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">DSE_capstone 0.1 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-Utility">
+<span id="utility-module"></span><h1>Utility module<a class="headerlink" href="#module-Utility" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="Utility.Utility">
+<em class="property">class </em><code class="descclassname">Utility.</code><code class="descname">Utility</code><span class="sig-paren">(</span><em>file_args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Utility.html#Utility"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Utility.Utility" title="Permalink to this definition">¶</a></dt>
+<dd><p>Utility class to hold helper functions for data pre-processing and modeling.</p>
+<dl class="method">
+<dt id="Utility.Utility.add_best_models">
+<code class="descname">add_best_models</code><span class="sig-paren">(</span><em>val_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Utility.html#Utility.add_best_models"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Utility.Utility.add_best_models" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add best model to provided results dictionary.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>val_dict</strong> – Dictionary to be updated.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None, val_dict is updated in place.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Utility.Utility.create_week_cv_folds">
+<code class="descname">create_week_cv_folds</code><span class="sig-paren">(</span><em>data</em>, <em>num_weeks</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Utility.html#Utility.create_week_cv_folds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Utility.Utility.create_week_cv_folds" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create cross validation folds by week.</p>
+<p>Can be used to create cross validation folds for 1 week periods</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> – Dataframs of traffic data.</li>
+<li><strong>num_weeks</strong> – Number of weeks to hold out for cross validation.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Numpy array of data with -1 indicating training data.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Utility.Utility.get_best_model">
+<code class="descname">get_best_model</code><span class="sig-paren">(</span><em>stage</em>, <em>cluster</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Utility.html#Utility.get_best_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Utility.Utility.get_best_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the best model for the given cluster in the given modeling stage.</p>
+<p>Best model is determined by reading the val_results_dict.pkl file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>stage</strong> – Stage of modeling: 1 (binary is traffic) or 2 (level of traffic assuming traffic in stage 1).</li>
+<li><strong>cluster</strong> – Cluster number to find best model for.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">best model object and model type description string.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Utility.Utility.get_modeling_data">
+<code class="descname">get_modeling_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Utility.html#Utility.get_modeling_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Utility.Utility.get_modeling_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get modeling data from the database and split into train and test data sets.</p>
+<p>Splitting can be done either randomly or by date to allow for testing with a specific date range.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">2 data frames, 1 for the training data and 1 for the test data.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Utility.Utility.get_neg_pos_ratio">
+<code class="descname">get_neg_pos_ratio</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Utility.html#Utility.get_neg_pos_ratio"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Utility.Utility.get_neg_pos_ratio" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the negative to positive traffic congestion data (level_binary column) of the given dataframe.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data</strong> – dataframe containing traffic congestion data with a level_binary field indicating the presence of traffic.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Negative positive ration as a float.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Utility.Utility.get_predefined_val_split">
+<code class="descname">get_predefined_val_split</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Utility.html#Utility.get_predefined_val_split"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Utility.Utility.get_predefined_val_split" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a predefined validation split for use in the Step 2 Evaluating Models notebook.</p>
+<p>Marks data as training or validation using a numpy array with -1 to indicate training data
+and 0 to indicate validation data.</p>
+<p>See this link for more details:
+<a class="reference external" href="https://stackoverflow.com/questions/43764999/python-machine-learning-perform-a-grid-search-on-custom-validation-set/43766334#43766334">https://stackoverflow.com/questions/43764999/python-machine-learning-perform-a-grid-search-on-custom-validation-set/43766334#43766334</a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data</strong> – Dataframe to split.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Numpy array of data with -1 indicating training data.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Utility.Utility.get_validation_splits">
+<code class="descname">get_validation_splits</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Utility.html#Utility.get_validation_splits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Utility.Utility.get_validation_splits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create cross validation folds of validation data either by date or randomly.</p>
+<p>:param <a class="reference external" href="data:Dataframe">data:Dataframe</a> to split
+:return: Stratified folds of the validation split values.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Utility.Utility.isAWS">
+<code class="descname">isAWS</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Utility.html#Utility.isAWS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Utility.Utility.isAWS" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine if code is running on an AWS EC2 instance.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True if running on AWS EC2 instance.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Utility.Utility.metrics_plot_cluster">
+<code class="descname">metrics_plot_cluster</code><span class="sig-paren">(</span><em>results_dict</em>, <em>stage=’stage_1’</em>, <em>score_metric=’f1_score’</em>, <em>sort_by_model=’model_avg_baseline’</em>, <em>title_prefix=”</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Utility.html#Utility.metrics_plot_cluster"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Utility.Utility.metrics_plot_cluster" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a plot showing modeling score for the provided metric by cluster.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>results_dict</strong> – Dictionary containing model results.</li>
+<li><strong>stage</strong> – Stage of modeling: 1 (binary is traffic) or 2 (level of traffic assuming traffic in stage 1).</li>
+<li><strong>score_metric</strong> – Meetric to plot on (f1_score is the default).</li>
+<li><strong>sort_by_model</strong> – Model to sort results on.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None, a plot is shown in the calling notebook.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Utility.Utility.metrics_plot_model">
+<code class="descname">metrics_plot_model</code><span class="sig-paren">(</span><em>results_dict</em>, <em>stage=’stage_1’</em>, <em>score_metric=’f1_score’</em>, <em>sort=True</em>, <em>title_prefix=”</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Utility.html#Utility.metrics_plot_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Utility.Utility.metrics_plot_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a plot showing modeling score for the provided metric from the results_dict.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>results_dict</strong> – Dictionary containing model results.</li>
+<li><strong>stage</strong> – Stage of modeling: 1 (binary is traffic) or 2 (level of traffic assuming traffic in stage 1).</li>
+<li><strong>score_metric</strong> – Meetric to plot on (f1_score is the default).</li>
+<li><strong>sort</strong> – Should results be sorted (boolean).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None, a plot is shown in the calling notebook.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Utility.Utility.process_train_test">
+<code class="descname">process_train_test</code><span class="sig-paren">(</span><em>data</em>, <em>split_method=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Utility.html#Utility.process_train_test"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Utility.Utility.process_train_test" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform train test split on the provided dataframe by the provided method.</p>
+<p>Splitting can be done either randomly or by date to allow for testing with a specific date range.
+Will unskew the training and or test data before returning if the flag has been set in the args file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> – Dataframe of traffic data</li>
+<li><strong>split_method</strong> – how to split data (random or by date)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">2 data frames, 1 for the training data and 1 for the test data.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Utility.Utility.unskew_data">
+<code class="descname">unskew_data</code><span class="sig-paren">(</span><em>data</em>, <em>neg_pos_ratio</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Utility.html#Utility.unskew_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Utility.Utility.unskew_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unskew a dataframe.</p>
+<p>Splits the data into positive and negative dataframes based on the leve_binary column, then performs a sample
+(with the seed from the args file for repeatability) from the negative dataframe, and finally concatenates the
+sampled negative dataframe to the positive dataframe.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> – Pandas dataframe.</li>
+<li><strong>neg_pos_ratio</strong> – Desired ratio of negative to positive data in results</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">dataframe of unskewed data.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Utility.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">DSE_capstone 0.1 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Ken Kroel.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.2.
+    </div>
+  </body>
+</html>

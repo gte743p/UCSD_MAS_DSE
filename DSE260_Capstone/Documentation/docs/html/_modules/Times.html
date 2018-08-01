@@ -1,0 +1,385 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Times &#8212; DSE_capstone 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">DSE_capstone 0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for Times</h1><div class="highlight"><pre>
+<div class="viewcode-block" id="Times"><a class="viewcode-back" href="../Times.html#Times.Times">[docs]</a><span></span><span class="k">class</span> <span class="nc">Times</span><span class="p">:</span>
+    
+    <span class="sd">&quot;&quot;&quot;Data and queries to set relevant days and times for traffic analysis.</span>
+
+<span class="sd">    This class is used to sample all available time buckets (30 minute window) by 1 or more methods</span>
+<span class="sd">    and store the time data in a table for use by other objects.</span>
+
+<span class="sd">    Available methods:</span>
+
+<span class="sd">    time_window:    Select all time buckets within 1 or more given time windows.</span>
+
+<span class="sd">    day_of_week:    Select all time buckets with a given day of the week.</span>
+
+<span class="sd">    sample:         Select a random sample of the provided percent from all time buckets.</span>
+
+<span class="sd">    exclude_dates:  Select all time buckets that do not fall on a given set of dates.</span>
+
+<span class="sd">    cum_ts_pct:     Select all time buckets such that the provided percent of positive traffic points are retained.</span>
+
+<span class="sd">    This class will be used in the Pipeline notebook for exploration purposes and in the Production</span>
+<span class="sd">    python code used to perform the actual clustering and modeling of traffic data.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conn</span><span class="p">,</span> <span class="n">queries</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Constructor for Time object.</span>
+
+<span class="sd">        :param conn: database connection object.</span>
+<span class="sd">        :param queries: list of queries to be run against the main times table.</span>
+<span class="sd">        :param args: dict of arguments read from the arguments file.</span>
+<span class="sd">        :return: Time instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">conn</span> <span class="o">=</span> <span class="n">conn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">args</span> <span class="o">=</span> <span class="n">args</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">times_filter</span> <span class="o">=</span> <span class="s1">&#39;time_id&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">times_table</span> <span class="o">=</span> <span class="s1">&#39;time_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;time_resolution&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39; t&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_table</span> <span class="o">=</span> <span class="s1">&#39;time_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;time_resolution&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">matrix_table</span> <span class="o">=</span> <span class="s1">&#39;matrix_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;time_resolution&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">times_selected_table</span> <span class="o">=</span> <span class="s1">&#39;times_selected&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">selected_times</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">queries</span> <span class="o">=</span> <span class="n">queries</span>
+        <span class="k">if</span> <span class="s1">&#39;time_window_min&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span> <span class="ow">and</span> <span class="s1">&#39;time_window_max&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;time_window_min&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="s1">&#39;time_window_min&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;time_window_max&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="s1">&#39;time_window_max&#39;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">query_map</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;time_window&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_timewindow_sql</span><span class="p">,</span>
+            <span class="s1">&#39;day_of_week&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_day_of_week_sql</span><span class="p">,</span>
+            <span class="s1">&#39;exclude_dates&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_exclude_dates_sql</span><span class="p">,</span>
+            <span class="s1">&#39;cum_ts_pct&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_cum_ts_pct_sql</span><span class="p">,</span>
+            <span class="s1">&#39;sample&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_sample_sql</span>
+        <span class="p">}</span>
+
+<div class="viewcode-block" id="Times.run_queries"><a class="viewcode-back" href="../Times.html#Times.Times.run_queries">[docs]</a>    <span class="k">def</span> <span class="nf">run_queries</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Run all queries to select desired time buckets for clustering and modelling.</span>
+
+<span class="sd">        :return: None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">queries</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">query</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">queries</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_table</span>
+                <span class="n">sql_truncate</span> <span class="o">=</span> <span class="s1">&#39;TRUNCATE </span><span class="si">{}</span><span class="s1">; </span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times_selected_table</span><span class="p">)</span>
+                <span class="n">sql</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query_map</span><span class="p">[</span><span class="n">query</span><span class="p">](</span><span class="n">table</span><span class="p">)</span>
+                <span class="n">sql_with</span> <span class="o">=</span> <span class="s1">&#39;WITH times_to_keep AS ( &#39;</span> <span class="o">+</span> <span class="n">sql</span> <span class="o">+</span> <span class="s1">&#39; ) </span><span class="se">\n</span><span class="s1">&#39;</span>
+                <span class="n">sql_select_inner</span> <span class="o">=</span> <span class="s1">&#39;SELECT time_id from times_to_keep&#39;</span>
+                <span class="n">sql_where</span> <span class="o">=</span> <span class="s1">&#39; WHERE time_id IN (</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sql_select_inner</span><span class="p">)</span>
+                <span class="n">sql_select_outer</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM </span><span class="si">{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">sql_where</span><span class="p">)</span>
+                <span class="n">sql_insert</span> <span class="o">=</span> <span class="s1">&#39;INSERT INTO </span><span class="si">{}</span><span class="s1"> (</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times_selected_table</span><span class="p">,</span> <span class="n">sql_select_outer</span><span class="p">)</span>
+                <span class="n">final_sql</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}{}</span><span class="s1"> </span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sql_truncate</span><span class="p">,</span> <span class="n">sql_with</span><span class="p">,</span> <span class="n">sql_insert</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">final_sql</span><span class="p">)</span>
+                <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">final_sql</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">times_selected_table</span>
+                <span class="n">sql</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query_map</span><span class="p">[</span><span class="n">query</span><span class="p">](</span><span class="n">table</span><span class="p">)</span>
+                <span class="n">sql_with</span> <span class="o">=</span> <span class="s1">&#39;with times_to_keep as ( &#39;</span> <span class="o">+</span> <span class="n">sql</span> <span class="o">+</span> <span class="s1">&#39; ) </span><span class="se">\n</span><span class="s1">&#39;</span>
+                <span class="n">sql_delete</span> <span class="o">=</span> <span class="s1">&#39;DELETE from &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">times_selected_table</span>
+                <span class="n">sql_select</span> <span class="o">=</span> <span class="s1">&#39;SELECT time_id from times_to_keep&#39;</span>
+                <span class="n">sql_where</span> <span class="o">=</span> <span class="s1">&#39; WHERE time_id NOT IN (</span><span class="si">{}</span><span class="s1">);&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sql_select</span><span class="p">)</span>
+                <span class="n">final_sql</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}{}</span><span class="s1"> </span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sql_with</span><span class="p">,</span> <span class="n">sql_delete</span><span class="p">,</span> <span class="n">sql_where</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">final_sql</span><span class="p">)</span>
+                <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">final_sql</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+    <span class="c1">#     def run_queries(self):</span>
+    <span class="c1">#         queries = []</span>
+    <span class="c1">#         for idx, query in enumerate(self.queries):</span>
+    <span class="c1">#             table = self.times_selected_table</span>
+    <span class="c1">#             if idx == 0:</span>
+    <span class="c1">#                 # drop segments_selected</span>
+    <span class="c1">#                 # create segments_selected as select * from segments</span>
+    <span class="c1">#                 sql_drop = &#39;drop table times_selected;&#39;</span>
+    <span class="c1">#                 create_table_sql = &#39;&#39;&#39;CREATE TABLE IF NOT EXISTS times_selected AS</span>
+    <span class="c1">#                 (SELECT * FROM time);</span>
+    <span class="c1">#                 &#39;&#39;&#39;</span>
+    <span class="c1"># #                 print(sql_drop)</span>
+    <span class="c1"># #                 print(create_table_sql)</span>
+    <span class="c1">#                 cur = self.conn.cursor()</span>
+    <span class="c1">#                 cur.execute(sql_drop)</span>
+    <span class="c1">#                 cur.execute(create_table_sql)</span>
+    <span class="c1">#                 cur.close()</span>
+
+    <span class="c1">#             sql = self.query_map[query](table)</span>
+    <span class="c1"># #             print(query + &#39;:&#39; + str(sql))</span>
+    <span class="c1">#             sql_delete = &#39;\nDELETE from &#39; + table</span>
+    <span class="c1">#             sql_where = &#39; WHERE time_id NOT IN ({});&#39;.format(sql)</span>
+    <span class="c1">#             final_sql = &#39;{}{}&#39;.format(sql_delete, sql_where)</span>
+    <span class="c1">#             print(final_sql)</span>
+    <span class="c1">#             cur = conn.cursor()</span>
+    <span class="c1">#             cur.execute(final_sql)</span>
+    <span class="c1">#             cur.close()</span>
+
+<div class="viewcode-block" id="Times.create_cum_ts_pct_sql"><a class="viewcode-back" href="../Times.html#Times.Times.create_cum_ts_pct_sql">[docs]</a>    <span class="k">def</span> <span class="nf">create_cum_ts_pct_sql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create SQL to create ts_cum_pct table.</span>
+
+<span class="sd">        The ts_cum_pct table is used to allow the selection of time buckets that will retain a given percentage</span>
+<span class="sd">        of positive traffic data point.</span>
+
+<span class="sd">        :param table: name of table to select times from.</span>
+<span class="sd">        :return: complete sql string to select all time buckets to retain a given percentage of positive traffic data points.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># create seg_cum_pct table</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_cum_ts_pct_table</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;time_resolution&#39;</span><span class="p">],</span> <span class="n">table</span><span class="p">)</span>
+        <span class="n">final_sql</span> <span class="o">=</span> <span class="s1">&#39;SELECT time_id FROM ts_cum_pct WHERE cum_pos_pct &lt;= </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;time_queries&#39;</span><span class="p">][</span><span class="s1">&#39;cum_ts_pct&#39;</span><span class="p">]))</span>
+        <span class="k">return</span> <span class="n">final_sql</span></div>
+
+    <span class="c1">#    def create_cum_ts_pct_sql(self, table):</span>
+    <span class="c1">#        final_sql = create_cum_ts_pct_table(conn, self.args[&#39;time_resolution&#39;], table, self.args[&#39;time_pct&#39;])</span>
+    <span class="c1">#        return final_sql</span>
+
+<div class="viewcode-block" id="Times.create_exclude_dates_sql"><a class="viewcode-back" href="../Times.html#Times.Times.create_exclude_dates_sql">[docs]</a>    <span class="k">def</span> <span class="nf">create_exclude_dates_sql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Select time buckets that do not fall within a given list of excluded dates.</span>
+
+<span class="sd">        :param table: name of table to select times from.</span>
+<span class="sd">        :return: complete sql string to select all time buckets that are not in a given list of excluded dates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">exclude_dates</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">x</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;time_queries&#39;</span><span class="p">][</span><span class="s1">&#39;exclude_dates&#39;</span><span class="p">]]</span>
+        <span class="n">exclude_dates</span> <span class="o">=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">exclude_dates</span><span class="p">)</span>
+        <span class="n">sql_select</span> <span class="o">=</span> <span class="s1">&#39;SELECT </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times_filter</span><span class="p">)</span>
+        <span class="n">sql_from</span> <span class="o">=</span> <span class="s1">&#39; FROM </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="n">sql_where</span> <span class="o">=</span> <span class="s1">&#39; WHERE date not in (</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">exclude_dates</span><span class="p">)</span>
+        <span class="n">final_sql</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sql_select</span><span class="p">,</span> <span class="n">sql_from</span><span class="p">,</span> <span class="n">sql_where</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">final_sql</span></div>
+
+<div class="viewcode-block" id="Times.create_timewindow_sql"><a class="viewcode-back" href="../Times.html#Times.Times.create_timewindow_sql">[docs]</a>    <span class="k">def</span> <span class="nf">create_timewindow_sql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Select time buckets that fall within a given list of time windows.</span>
+
+<span class="sd">        :param table: name of table to select times from.</span>
+<span class="sd">        :return: complete sql string to select all time buckets that are within the given list of time windows.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">sql_select</span> <span class="o">=</span> <span class="s1">&#39;SELECT </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times_filter</span><span class="p">)</span>
+        <span class="n">sql_from</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1"> FROM </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="c1"># if both time_window_min AND max are set</span>
+        <span class="c1"># select fields from times table where times between window min and max</span>
+        <span class="n">sql_where</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2"> WHERE (time &gt;= &#39;</span><span class="si">{}</span><span class="s2">&#39; AND time &lt;= &#39;</span><span class="si">{}</span><span class="s2">&#39;)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;time_queries&#39;</span><span class="p">][</span><span class="s1">&#39;time_window&#39;</span><span class="p">][</span><span class="s1">&#39;time_window_include&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;time_queries&#39;</span><span class="p">][</span><span class="s1">&#39;time_window&#39;</span><span class="p">][</span><span class="s1">&#39;time_window_include&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">twin</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;time_queries&#39;</span><span class="p">][</span><span class="s1">&#39;time_window&#39;</span><span class="p">][</span><span class="s1">&#39;time_window_include&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">:]):</span>
+            <span class="n">sql_where</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2"> OR (time &gt;= &#39;</span><span class="si">{}</span><span class="s2">&#39; AND time &lt;= &#39;</span><span class="si">{}</span><span class="s2">&#39;)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;time_queries&#39;</span><span class="p">][</span><span class="s1">&#39;time_window&#39;</span><span class="p">][</span><span class="s1">&#39;time_window_include&#39;</span><span class="p">][</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;time_queries&#39;</span><span class="p">][</span><span class="s1">&#39;time_window&#39;</span><span class="p">][</span><span class="s1">&#39;time_window_include&#39;</span><span class="p">][</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="n">final_sql</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sql_select</span><span class="p">,</span> <span class="n">sql_from</span><span class="p">,</span> <span class="n">sql_where</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">final_sql</span></div>
+
+<div class="viewcode-block" id="Times.create_sample_sql"><a class="viewcode-back" href="../Times.html#Times.Times.create_sample_sql">[docs]</a>    <span class="k">def</span> <span class="nf">create_sample_sql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create SQL to select random sample of a given percentage (set in args) of timestamps.</span>
+
+<span class="sd">        :param table: name of table to select timestamps from.</span>
+<span class="sd">        :return: complete sql string to select a random sample of a given percentage) of all timestamps.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># tablesample needs to go after alias s but before join ...</span>
+        <span class="n">sql_select</span> <span class="o">=</span> <span class="s1">&#39;SELECT </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times_filter</span><span class="p">)</span>
+        <span class="n">sql_from</span> <span class="o">=</span> <span class="s1">&#39; FROM </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="n">sql_sample</span> <span class="o">=</span> <span class="s1">&#39; TABLESAMPLE SYSTEM (</span><span class="si">{}</span><span class="s1">) REPEATABLE (</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;time_queries&#39;</span><span class="p">][</span><span class="s1">&#39;sample&#39;</span><span class="p">][</span><span class="s1">&#39;time_sample&#39;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;seed&#39;</span><span class="p">])</span>
+        <span class="n">final_sql</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sql_select</span><span class="p">,</span> <span class="n">sql_from</span><span class="p">,</span> <span class="n">sql_sample</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">final_sql</span></div>
+    
+<div class="viewcode-block" id="Times.day_of_week"><a class="viewcode-back" href="../Times.html#Times.Times.day_of_week">[docs]</a>    <span class="k">def</span> <span class="nf">day_of_week</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create day of week filter part of a query.</span>
+
+<span class="sd">        :return: string to be used as where clause in day of week query.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="s1">&#39;day_of_week = &#39;</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;time_queries&#39;</span><span class="p">][</span><span class="s1">&#39;day_of_week&#39;</span><span class="p">][</span><span class="s1">&#39;input_dow&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">&#39;</span></div>
+
+<div class="viewcode-block" id="Times.create_day_of_week_sql"><a class="viewcode-back" href="../Times.html#Times.Times.create_day_of_week_sql">[docs]</a>    <span class="k">def</span> <span class="nf">create_day_of_week_sql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create SQL to select all time buckets that fall on a given day of the week (set in args).</span>
+
+<span class="sd">        :param table: name of table to select times from.</span>
+<span class="sd">        :return: complete sql string to select all time buckets that fall on a given day of the week.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">sql_select</span> <span class="o">=</span> <span class="s1">&#39;SELECT </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times_filter</span><span class="p">)</span>
+        <span class="n">sql_from</span> <span class="o">=</span> <span class="s1">&#39; FROM </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="n">sql_where</span> <span class="o">=</span> <span class="s1">&#39; WHERE </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">day_of_week</span><span class="p">()))</span>
+        <span class="n">final_sql</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}{}{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sql_select</span><span class="p">,</span> <span class="n">sql_from</span><span class="p">,</span> <span class="n">sql_where</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">final_sql</span></div>
+
+<div class="viewcode-block" id="Times.create_cum_ts_pct_table"><a class="viewcode-back" href="../Times.html#Times.Times.create_cum_ts_pct_table">[docs]</a>    <span class="k">def</span> <span class="nf">create_cum_ts_pct_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conn</span><span class="p">,</span> <span class="n">time_resolution</span><span class="p">,</span> <span class="n">time_table</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create table showing the cumulative percentage of times and positive traffic data points.</span>
+
+<span class="sd">        Create a table showing the cumulative percentage of time buckets and positive data points.</span>
+<span class="sd">        This table allows the user to select times such that a given percentage of positive traffic data points</span>
+<span class="sd">        are retained in the data. This was done because there are many times that have a small number</span>
+<span class="sd">        of positive traffic data points across the data range. Removing such times allows one to</span>
+<span class="sd">        make the data set much smaller while still retaining most of the information contained in the data</span>
+<span class="sd">        (similar to PCA).</span>
+
+<span class="sd">        :param conn: database connection object.</span>
+<span class="sd">        :param time_resolution: time window resolution in minutes of traffic data points.</span>
+<span class="sd">        :param time_table: table name containing time data</span>
+<span class="sd">        :return: None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># drop table</span>
+        <span class="n">sql_drop_ts_cum_pct_table</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">        drop table if exists ts_cum_pct</span>
+<span class="s1">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># create table</span>
+        <span class="n">sql_create_ts_cum_pct_table</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">        create table ts_cum_pct as</span>
+<span class="s1">        (with ts_counts as</span>
+<span class="s1">        (select t.time_id, count(distinct s.segment_id) as num_segments</span>
+<span class="s1">            from matrix_&#39;&#39;&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">time_resolution</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;&#39;&#39; m, &#39;&#39;&#39;</span> <span class="o">+</span> <span class="n">time_table</span> <span class="o">+</span> <span class="s1">&#39;&#39;&#39; t, segments_selected s</span>
+
+<span class="s1">        where m.time_id = t.time_id and s.segment_id = m.segment_id</span>
+<span class="s1">        group by t.time_id),</span>
+
+<span class="s1">        ts_seg_counts as</span>
+<span class="s1">        (select num_segments, count(*) as ts_count</span>
+<span class="s1">        from ts_counts</span>
+<span class="s1">        group by num_segments),</span>
+
+<span class="s1">        cum_ts_count as</span>
+<span class="s1">        (select num_segments, ts_count, sum(ts_count)</span>
+<span class="s1">        over (order by num_segments desc)</span>
+<span class="s1">        from ts_seg_counts</span>
+<span class="s1">        order by sum asc),</span>
+
+<span class="s1">        ts_count_total as</span>
+<span class="s1">        (select sum(ts_count) as total_ts from cum_ts_count),</span>
+
+<span class="s1">        cum_ts_pct_table as</span>
+<span class="s1">        (select csc.num_segments, csc.ts_count, csc.sum, csc.sum / sct.total_ts as cum_ts_pct</span>
+<span class="s1">        from cum_ts_count as csc, ts_count_total as sct),</span>
+
+<span class="s1">        pos_counts as</span>
+<span class="s1">        (select num_segments, ts_count, num_segments*ts_count as pos_count</span>
+<span class="s1">        from ts_seg_counts),</span>
+
+<span class="s1">        cum_pos_count as</span>
+<span class="s1">        (select num_segments, pos_count, sum(pos_count)</span>
+<span class="s1">        over (order by num_segments desc)</span>
+<span class="s1">        from pos_counts</span>
+<span class="s1">        order by sum asc),</span>
+
+<span class="s1">        pos_count_total as</span>
+<span class="s1">        (select sum(pos_count) as total_positives from cum_pos_count),</span>
+
+<span class="s1">        cum_pos_pct_table as</span>
+<span class="s1">        (select cpc.num_segments, cpc.pos_count, cpc.sum, cpc.sum / pct.total_positives as cum_pos_pct</span>
+<span class="s1">        from cum_pos_count as cpc, pos_count_total as pct)</span>
+
+<span class="s1">        select ts_counts.time_id, round(cum_ts_pct_table.cum_ts_pct*100, 4) as cum_ts_pct,</span>
+<span class="s1">        round(cum_pos_pct_table.cum_pos_pct*100, 4) as cum_pos_pct</span>
+<span class="s1">        from ts_counts, cum_ts_pct_table, cum_pos_pct_table</span>
+<span class="s1">        where ts_counts.num_segments = cum_ts_pct_table.num_segments</span>
+<span class="s1">        and ts_counts.num_segments = cum_pos_pct_table.num_segments</span>
+<span class="s1">        order by cum_ts_pct asc)</span>
+<span class="s1">        &#39;&#39;&#39;</span>
+
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql_drop_ts_cum_pct_table</span><span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql_create_ts_cum_pct_table</span><span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="kc">None</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">DSE_capstone 0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Ken Kroel.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.2.
+    </div>
+  </body>
+</html>

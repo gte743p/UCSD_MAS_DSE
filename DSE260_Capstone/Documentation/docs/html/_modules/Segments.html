@@ -1,0 +1,419 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Segments &#8212; DSE_capstone 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">DSE_capstone 0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for Segments</h1><div class="highlight"><pre>
+<div class="viewcode-block" id="Segments"><a class="viewcode-back" href="../Segments.html#Segments.Segments">[docs]</a><span></span><span class="k">class</span> <span class="nc">Segments</span><span class="p">:</span>
+
+    
+    <span class="sd">&quot;&quot;&quot;Data and queries to set relevant segments for various traffic analysis.</span>
+
+<span class="sd">    This class is used to sample all available segments by 1 or more methods and store the segments</span>
+<span class="sd">    in a table for use by other objects.</span>
+
+<span class="sd">    Available methods:</span>
+
+<span class="sd">    radius:         Select all segments within a given radius of a provided point.</span>
+
+<span class="sd">    bounding_box:   Select all segments with a given bounding box.</span>
+
+<span class="sd">    sample:         Select a random sample of the provided percent from all segments.</span>
+
+<span class="sd">    street:         Select all segments on a given street name.</span>
+
+<span class="sd">    road_type:      Select all segments of a given road type.</span>
+
+<span class="sd">    ignore:         Select all segments with an Ignore flag of True.</span>
+
+<span class="sd">    cum_seg_pct:    Select all segments such that the provided percent of positive traffic points are retained.</span>
+
+<span class="sd">    This class will be used in the Pipeline notebook for exploration purposes and in the Production</span>
+<span class="sd">    python code used to perform the actual clustering and modeling of traffic data.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conn</span><span class="p">,</span> <span class="n">queries</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Constructor for Segment object.</span>
+
+<span class="sd">        :param conn: database connection object.</span>
+<span class="sd">        :param queries: list of queries to be run against the main segments table.</span>
+<span class="sd">        :param args: dict of arguments read from the arguments file.</span>
+<span class="sd">        :return: Segment instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">conn</span> <span class="o">=</span> <span class="n">conn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">args</span> <span class="o">=</span> <span class="n">args</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">segments_filter</span> <span class="o">=</span> <span class="s1">&#39;segment_id&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">segments_table</span> <span class="o">=</span> <span class="s1">&#39;segments&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">segments_selected_table</span> <span class="o">=</span> <span class="s1">&#39;segments_selected&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_table</span> <span class="o">=</span> <span class="s1">&#39;time_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;time_resolution&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">matrix_table</span> <span class="o">=</span> <span class="s1">&#39;matrix_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;time_resolution&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">selected_segments</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">queries</span> <span class="o">=</span> <span class="n">queries</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">query_map</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;radius&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_radius_sql</span><span class="p">,</span>
+            <span class="s1">&#39;bounding_box&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_boundingbox_sql</span><span class="p">,</span>
+            <span class="s1">&#39;sample&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_sample_sql</span><span class="p">,</span>
+            <span class="s1">&#39;street&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_street_sql</span><span class="p">,</span>
+            <span class="s1">&#39;road_type&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_road_type_sql</span><span class="p">,</span>
+            <span class="s1">&#39;ignore&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_ignore_sql</span><span class="p">,</span>
+            <span class="s1">&#39;cum_seg_pct&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_cum_seg_pct_sql</span>
+        <span class="p">}</span>
+
+<div class="viewcode-block" id="Segments.run_queries"><a class="viewcode-back" href="../Segments.html#Segments.Segments.run_queries">[docs]</a>    <span class="k">def</span> <span class="nf">run_queries</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Run all queries to select desired segments for clustering and modelling.</span>
+
+<span class="sd">        :return: None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">queries</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">query</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">queries</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">segments_table</span>
+                <span class="n">sql_truncate</span> <span class="o">=</span> <span class="s1">&#39;TRUNCATE </span><span class="si">{}</span><span class="s1">; </span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">segments_selected_table</span><span class="p">)</span>
+                <span class="n">sql</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query_map</span><span class="p">[</span><span class="n">query</span><span class="p">](</span><span class="n">table</span><span class="p">)</span>
+                <span class="n">sql_with</span> <span class="o">=</span> <span class="s1">&#39;WITH segments_to_keep AS ( &#39;</span> <span class="o">+</span> <span class="n">sql</span> <span class="o">+</span> <span class="s1">&#39; ) </span><span class="se">\n</span><span class="s1">&#39;</span>
+                <span class="n">sql_select_inner</span> <span class="o">=</span> <span class="s1">&#39;SELECT segment_id from segments_to_keep&#39;</span>
+                <span class="n">sql_where</span> <span class="o">=</span> <span class="s1">&#39; WHERE segment_id IN (</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sql_select_inner</span><span class="p">)</span>
+                <span class="n">sql_select_outer</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM </span><span class="si">{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">sql_where</span><span class="p">)</span>
+                <span class="n">sql_insert</span> <span class="o">=</span> <span class="s1">&#39;INSERT INTO </span><span class="si">{}</span><span class="s1"> (</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">segments_selected_table</span><span class="p">,</span> <span class="n">sql_select_outer</span><span class="p">)</span>
+                <span class="n">final_sql</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}{}</span><span class="s1"> </span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sql_truncate</span><span class="p">,</span> <span class="n">sql_with</span><span class="p">,</span> <span class="n">sql_insert</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">final_sql</span><span class="p">)</span>
+                <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">final_sql</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">segments_selected_table</span>
+                <span class="n">sql</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query_map</span><span class="p">[</span><span class="n">query</span><span class="p">](</span><span class="n">table</span><span class="p">)</span>
+                <span class="n">sql_with</span> <span class="o">=</span> <span class="s1">&#39;with segments_to_keep as ( &#39;</span> <span class="o">+</span> <span class="n">sql</span> <span class="o">+</span> <span class="s1">&#39; ) </span><span class="se">\n</span><span class="s1">&#39;</span>
+                <span class="n">sql_delete</span> <span class="o">=</span> <span class="s1">&#39;DELETE from &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">segments_selected_table</span>
+                <span class="n">sql_select</span> <span class="o">=</span> <span class="s1">&#39;SELECT segment_id from segments_to_keep&#39;</span>
+                <span class="n">sql_where</span> <span class="o">=</span> <span class="s1">&#39; WHERE segment_id NOT IN (</span><span class="si">{}</span><span class="s1">);&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sql_select</span><span class="p">)</span>
+                <span class="n">final_sql</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}{}</span><span class="s1"> </span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sql_with</span><span class="p">,</span> <span class="n">sql_delete</span><span class="p">,</span> <span class="n">sql_where</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">final_sql</span><span class="p">)</span>
+                <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">final_sql</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Segments.create_cum_seg_pct_sql"><a class="viewcode-back" href="../Segments.html#Segments.Segments.create_cum_seg_pct_sql">[docs]</a>    <span class="k">def</span> <span class="nf">create_cum_seg_pct_sql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create SQL to create seg_cum_pct table.</span>
+
+<span class="sd">        The seg_cum_pct table is used to allow the selection of segments that will retain a given percentage</span>
+<span class="sd">        of positive traffic data point.</span>
+
+<span class="sd">        :param table: name of table to select segments from.</span>
+<span class="sd">        :return: complete sql string to select all segments to retain a given percentage of positive traffic data points.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># create seg_cum_pct table</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_cum_seg_pct_table</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;time_resolution&#39;</span><span class="p">],</span> <span class="n">table</span><span class="p">)</span>
+        <span class="n">final_sql</span> <span class="o">=</span> <span class="s1">&#39;SELECT segment_id FROM seg_cum_pct WHERE cum_pos_pct &lt;= </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;segment_queries&#39;</span><span class="p">][</span><span class="s1">&#39;cum_seg_pct&#39;</span><span class="p">]))</span>
+        <span class="k">return</span> <span class="n">final_sql</span></div>
+
+<div class="viewcode-block" id="Segments.create_with"><a class="viewcode-back" href="../Segments.html#Segments.Segments.create_with">[docs]</a>    <span class="k">def</span> <span class="nf">create_with</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;DEPRECATED! </span>
+<span class="sd">        Create with clause for queries.</span>
+
+<span class="sd">        :param query: query to add with clause to.</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">sql_with</span> <span class="o">=</span> <span class="s1">&#39;with segments_to_keep as ( &#39;</span> <span class="o">+</span> <span class="n">query</span> <span class="o">+</span> <span class="s1">&#39; ) </span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="k">return</span> <span class="n">sql_with</span></div>
+
+<div class="viewcode-block" id="Segments.create_ignore_sql"><a class="viewcode-back" href="../Segments.html#Segments.Segments.create_ignore_sql">[docs]</a>    <span class="k">def</span> <span class="nf">create_ignore_sql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create query to select only segments with the ignore flag set to TRUE</span>
+
+<span class="sd">        :param table: table to select segments from.</span>
+<span class="sd">        :return: SQL query string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># assumes ignore filter is enabled in args</span>
+        <span class="n">sql_select</span> <span class="o">=</span> <span class="s1">&#39;SELECT </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">segments_filter</span><span class="p">)</span>
+        <span class="n">sql_from</span> <span class="o">=</span> <span class="s1">&#39; FROM </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="n">sql_where</span> <span class="o">=</span> <span class="s1">&#39; WHERE s.ignore = TRUE&#39;</span>
+        <span class="n">final_sql</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sql_select</span><span class="p">,</span> <span class="n">sql_from</span><span class="p">,</span> <span class="n">sql_where</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">final_sql</span></div>
+
+<div class="viewcode-block" id="Segments.mile_to_meter"><a class="viewcode-back" href="../Segments.html#Segments.Segments.mile_to_meter">[docs]</a>    <span class="k">def</span> <span class="nf">mile_to_meter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convert miles to meters for use in geom queries.</span>
+
+<span class="sd">        :return: meters as a string.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">meter</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;segment_queries&#39;</span><span class="p">][</span><span class="s1">&#39;radius&#39;</span><span class="p">][</span><span class="s1">&#39;input_radius&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1609.344</span><span class="p">))</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">meter</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Segments.sql_radius"><a class="viewcode-back" href="../Segments.html#Segments.Segments.sql_radius">[docs]</a>    <span class="k">def</span> <span class="nf">sql_radius</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create geom radius part of a query.</span>
+
+<span class="sd">        :return: string to be used as where clause in segments radius query.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">lat_lon</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;segment_queries&#39;</span><span class="p">][</span><span class="s1">&#39;radius&#39;</span><span class="p">][</span><span class="s1">&#39;input_poi&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; N&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; W&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">lat_lon</span> <span class="o">=</span> <span class="n">lat_lon</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;, &#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">&quot;ST_DWithin(geom, ST_MakePoint(&quot;</span> <span class="o">+</span> <span class="s2">&quot;-&quot;</span> <span class="o">+</span> <span class="n">lat_lon</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;,&quot;</span> <span class="o">+</span> <span class="n">lat_lon</span><span class="p">[</span>
+            <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;)::geography,&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">mile_to_meter</span><span class="p">()</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span></div>
+
+<div class="viewcode-block" id="Segments.create_radius_sql"><a class="viewcode-back" href="../Segments.html#Segments.Segments.create_radius_sql">[docs]</a>    <span class="k">def</span> <span class="nf">create_radius_sql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create SQL to select all segments within a given radius (set in args).</span>
+
+<span class="sd">        :param table: name of table to select segments from.</span>
+<span class="sd">        :return: complete sql string to select all segments within a given radius.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">sql_select</span> <span class="o">=</span> <span class="s1">&#39;SELECT </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">segments_filter</span><span class="p">)</span>
+        <span class="n">sql_from</span> <span class="o">=</span> <span class="s1">&#39; FROM </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="n">sql_where</span> <span class="o">=</span> <span class="s1">&#39; WHERE </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sql_radius</span><span class="p">())</span>
+        <span class="n">final_sql</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sql_select</span><span class="p">,</span> <span class="n">sql_from</span><span class="p">,</span> <span class="n">sql_where</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">final_sql</span></div>
+
+<div class="viewcode-block" id="Segments.bounding_box"><a class="viewcode-back" href="../Segments.html#Segments.Segments.bounding_box">[docs]</a>    <span class="k">def</span> <span class="nf">bounding_box</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create geom bounding box part of a query.</span>
+
+<span class="sd">        :return: string to be used in where clause of bounding box query.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">nw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;segment_queries&#39;</span><span class="p">][</span><span class="s1">&#39;bounding_box&#39;</span><span class="p">][</span><span class="s1">&#39;input_nw_corner&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; N&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; W&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">nw</span> <span class="o">=</span> <span class="n">nw</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;, &#39;</span><span class="p">)</span>
+        <span class="n">se</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;segment_queries&#39;</span><span class="p">][</span><span class="s1">&#39;bounding_box&#39;</span><span class="p">][</span><span class="s1">&#39;input_se_corner&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; N&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; W&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">se</span> <span class="o">=</span> <span class="n">se</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;, &#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">&quot;geom @ ST_MakeEnvelope (-</span><span class="si">{}</span><span class="s2">, </span><span class="si">{}</span><span class="s2">, -</span><span class="si">{}</span><span class="s2">, </span><span class="si">{}</span><span class="s2">) and ST_Length(geom) &gt; 0&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nw</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">nw</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">se</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">se</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="Segments.create_boundingbox_sql"><a class="viewcode-back" href="../Segments.html#Segments.Segments.create_boundingbox_sql">[docs]</a>    <span class="k">def</span> <span class="nf">create_boundingbox_sql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create SQL to select all segments within a given bounding box (set in args).</span>
+
+<span class="sd">        :param table: name of table to select segments from.</span>
+<span class="sd">        :return: complete sql string to select all segments within a given bounding box.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">sql_select</span> <span class="o">=</span> <span class="s1">&#39;SELECT </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">segments_filter</span><span class="p">)</span>
+        <span class="n">sql_from</span> <span class="o">=</span> <span class="s1">&#39; FROM </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="n">sql_where</span> <span class="o">=</span> <span class="s1">&#39; WHERE </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bounding_box</span><span class="p">())</span>
+        <span class="n">final_sql</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sql_select</span><span class="p">,</span> <span class="n">sql_from</span><span class="p">,</span> <span class="n">sql_where</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">final_sql</span></div>
+
+<div class="viewcode-block" id="Segments.create_sample_sql"><a class="viewcode-back" href="../Segments.html#Segments.Segments.create_sample_sql">[docs]</a>    <span class="k">def</span> <span class="nf">create_sample_sql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create SQL to select random sample of a given percentage (set in args) of segments.</span>
+
+<span class="sd">        :param table: name of table to select segments from.</span>
+<span class="sd">        :return: complete sql string to select a random sample of a given percentage) of all segments</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># tablesample needs to go after alias s but before join ...</span>
+        <span class="n">sql_select</span> <span class="o">=</span> <span class="s1">&#39;SELECT </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">segments_filter</span><span class="p">)</span>
+        <span class="n">sql_from</span> <span class="o">=</span> <span class="s1">&#39; FROM </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="n">sql_sample</span> <span class="o">=</span> <span class="s1">&#39; TABLESAMPLE SYSTEM (</span><span class="si">{}</span><span class="s1">) REPEATABLE (</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;segment_queries&#39;</span><span class="p">][</span><span class="s1">&#39;sample&#39;</span><span class="p">][</span><span class="s1">&#39;segments_sample&#39;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;seed&#39;</span><span class="p">])</span>
+        <span class="n">final_sql</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sql_select</span><span class="p">,</span> <span class="n">sql_from</span><span class="p">,</span> <span class="n">sql_sample</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">final_sql</span></div>
+
+<div class="viewcode-block" id="Segments.street"><a class="viewcode-back" href="../Segments.html#Segments.Segments.street">[docs]</a>    <span class="k">def</span> <span class="nf">street</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create where clause of query to select all segments on a given street.</span>
+
+<span class="sd">        :return: string to be used in where clause of query to find segments on a given street.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="s1">&#39;street = </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;segment_queries&#39;</span><span class="p">][</span><span class="s1">&#39;street&#39;</span><span class="p">][</span><span class="s1">&#39;input_street&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Segments.create_street_sql"><a class="viewcode-back" href="../Segments.html#Segments.Segments.create_street_sql">[docs]</a>    <span class="k">def</span> <span class="nf">create_street_sql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create SQL to select all segments on a given street (set in args).</span>
+
+<span class="sd">        :param table: name of table to select segments from.</span>
+<span class="sd">        :return: complete sql string to select all segments on a given street.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">sql_select</span> <span class="o">=</span> <span class="s1">&#39;SELECT </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">segments_filter</span><span class="p">)</span>
+        <span class="n">sql_from</span> <span class="o">=</span> <span class="s1">&#39; FROM </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="n">sql_where</span> <span class="o">=</span> <span class="s1">&#39; WHERE </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">street</span><span class="p">())</span>
+        <span class="n">final_sql</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sql_select</span><span class="p">,</span> <span class="n">sql_from</span><span class="p">,</span> <span class="n">sql_where</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">final_sql</span></div>
+
+<div class="viewcode-block" id="Segments.road_type"><a class="viewcode-back" href="../Segments.html#Segments.Segments.road_type">[docs]</a>    <span class="k">def</span> <span class="nf">road_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create where clause of query to select all segments of a given road type.</span>
+
+<span class="sd">        :return: string to be used in where clause of query to find segments of a given road type.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="s1">&#39;road_type = </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;segment_queries&#39;</span><span class="p">][</span><span class="s1">&#39;road_type&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="Segments.create_road_type_sql"><a class="viewcode-back" href="../Segments.html#Segments.Segments.create_road_type_sql">[docs]</a>    <span class="k">def</span> <span class="nf">create_road_type_sql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create SQL to select all segments of a given road type (set in args).</span>
+
+<span class="sd">        :param table: name of table to select segments from.</span>
+<span class="sd">        :return: complete sql string to select all segments of a given road type.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">sql_select</span> <span class="o">=</span> <span class="s1">&#39;SELECT </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">segments_filter</span><span class="p">)</span>
+        <span class="n">sql_from</span> <span class="o">=</span> <span class="s1">&#39; FROM </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="n">sql_where</span> <span class="o">=</span> <span class="s1">&#39; WHERE </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">road_type</span><span class="p">())</span>
+        <span class="n">final_sql</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sql_select</span><span class="p">,</span> <span class="n">sql_from</span><span class="p">,</span> <span class="n">sql_where</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">final_sql</span></div>
+
+<div class="viewcode-block" id="Segments.create_cum_seg_pct_table"><a class="viewcode-back" href="../Segments.html#Segments.Segments.create_cum_seg_pct_table">[docs]</a>    <span class="k">def</span> <span class="nf">create_cum_seg_pct_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conn</span><span class="p">,</span> <span class="n">time_resolution</span><span class="p">,</span> <span class="n">segments_table</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create table showing the cumulative percentage of segments and positive traffic data points.</span>
+
+<span class="sd">        Create a table showing the cumulative percentage of segments and positive data points.</span>
+<span class="sd">        This table allows the user to select segments such that a given percentage of positive traffic data points</span>
+<span class="sd">        are retained in the data. This was done because there are many segments that have a small number</span>
+<span class="sd">        of positive traffic data points across the data range. Removing such segments allows one to</span>
+<span class="sd">        make the data set much smaller while still retaining most of the information contained in the data</span>
+<span class="sd">        (similar to PCA).</span>
+
+<span class="sd">        :param conn: database connection object.</span>
+<span class="sd">        :param time_resolution: time window resolution in minutes of traffic data points.</span>
+<span class="sd">        :param segments_table: table name containing segment data</span>
+<span class="sd">        :return: None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># drop table</span>
+        <span class="n">sql_drop_seg_cum_pct_table</span> <span class="o">=</span> <span class="s1">&#39;drop table if exists seg_cum_pct&#39;</span>
+
+        <span class="c1"># create table</span>
+        <span class="n">sql_create_seg_cum_pct_table</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">        create table seg_cum_pct as</span>
+<span class="s1">        (with seg_counts as</span>
+<span class="s1">        (select s.segment_id, count(distinct m.time_id) as num_timestamps</span>
+<span class="s1">        from matrix_&#39;&#39;&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">time_resolution</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;&#39;&#39; m, time_&#39;&#39;&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">time_resolution</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; t,&#39;</span> <span class="o">+</span> <span class="n">segments_table</span> <span class="o">+</span> <span class="s1">&#39;&#39;&#39; s</span>
+<span class="s1">        where m.time_id = t.time_id and s.segment_id = m.segment_id</span>
+<span class="s1">        group by s.segment_id),</span>
+
+<span class="s1">        seg_ts_counts as</span>
+<span class="s1">        (select num_timestamps, count(*) as seg_count</span>
+<span class="s1">        from seg_counts</span>
+<span class="s1">        group by num_timestamps),</span>
+
+<span class="s1">        cum_seg_count as</span>
+<span class="s1">        (select num_timestamps, seg_count, sum(seg_count)</span>
+<span class="s1">        over (order by num_timestamps desc)</span>
+<span class="s1">        from seg_ts_counts</span>
+<span class="s1">        order by sum asc),</span>
+
+<span class="s1">        seg_count_total as</span>
+<span class="s1">        (select sum(seg_count) as total_segments from cum_seg_count),</span>
+
+<span class="s1">        cum_seg_pct_table as</span>
+<span class="s1">        (select csc.num_timestamps, csc.seg_count, csc.sum, csc.sum / sct.total_segments as cum_seg_pct</span>
+<span class="s1">        from cum_seg_count as csc, seg_count_total as sct),</span>
+
+<span class="s1">        pos_counts as</span>
+<span class="s1">        (select num_timestamps, seg_count, num_timestamps*seg_count as pos_count</span>
+<span class="s1">        from seg_ts_counts),</span>
+
+<span class="s1">        cum_pos_count as</span>
+<span class="s1">        (select num_timestamps, pos_count, sum(pos_count)</span>
+<span class="s1">        over (order by num_timestamps desc)</span>
+<span class="s1">        from pos_counts</span>
+<span class="s1">        order by sum asc),</span>
+
+<span class="s1">        pos_count_total as</span>
+<span class="s1">        (select sum(pos_count) as total_positives from cum_pos_count),</span>
+
+<span class="s1">        cum_pos_pct_table as</span>
+<span class="s1">        (select cpc.num_timestamps, cpc.pos_count, cpc.sum, cpc.sum / pct.total_positives as cum_pos_pct</span>
+<span class="s1">        from cum_pos_count as cpc, pos_count_total as pct)</span>
+
+<span class="s1">        select seg_counts.segment_id, round(cum_seg_pct_table.cum_seg_pct*100, 4) as cum_seg_pct,</span>
+<span class="s1">        round(cum_pos_pct_table.cum_pos_pct*100, 4) as cum_pos_pct</span>
+<span class="s1">        from seg_counts, cum_seg_pct_table, cum_pos_pct_table</span>
+<span class="s1">        where seg_counts.num_timestamps = cum_seg_pct_table.num_timestamps</span>
+<span class="s1">        and seg_counts.num_timestamps = cum_pos_pct_table.num_timestamps</span>
+<span class="s1">        order by cum_seg_pct asc)</span>
+<span class="s1">        &#39;&#39;&#39;</span>
+
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql_drop_seg_cum_pct_table</span><span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql_create_seg_cum_pct_table</span><span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="kc">None</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">DSE_capstone 0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Ken Kroel.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.2.
+    </div>
+  </body>
+</html>

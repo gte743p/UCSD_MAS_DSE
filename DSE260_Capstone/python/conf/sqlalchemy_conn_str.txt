@@ -1,0 +1,1 @@
+postgresql://(*username*):(*password*)@localhost:(*port*)/waze_schema

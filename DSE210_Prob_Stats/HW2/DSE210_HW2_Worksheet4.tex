@@ -1,0 +1,269 @@
+\documentclass{article}
+
+\usepackage{fancyhdr}
+\usepackage{extramarks}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{tikz}
+\usepackage[plain]{algorithm}
+\usepackage{algpseudocode}
+\usepackage{enumitem}
+\usepackage{mathtools}
+\usepackage{amssymb}
+
+\usetikzlibrary{automata,positioning}
+
+%
+% Basic Document Settings
+%
+
+\topmargin=-0.45in
+\evensidemargin=0in
+\oddsidemargin=0in
+\textwidth=6.5in
+\textheight=9.0in
+\headsep=0.25in
+
+\linespread{1.1}
+
+\pagestyle{fancy}
+\lhead{\hmwkClass\ \hmwkTitle}
+\rhead{\hmwkAuthorName}
+\lfoot{\lastxmark}
+\cfoot{\thepage}
+
+\renewcommand\headrulewidth{0.4pt}
+\renewcommand\footrulewidth{0.4pt}
+
+\setlength\parindent{0pt}
+
+%
+% Added stuff
+%
+
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}
+\setenumerate[0]{label={(\alph*)}}
+
+%
+% Create Problem Sections
+%
+
+\newcommand{\enterProblemHeader}[1]{
+    \nobreak\extramarks{}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
+    \nobreak\extramarks{Problem \arabic{#1} (continued)}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
+}
+
+\newcommand{\exitProblemHeader}[1]{
+    \nobreak\extramarks{Problem \arabic{#1} (continued)}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
+    \stepcounter{#1}
+    \nobreak\extramarks{Problem \arabic{#1}}{}\nobreak{}
+}
+
+\setcounter{secnumdepth}{0}
+\newcounter{partCounter}
+\newcounter{homeworkProblemCounter}
+\setcounter{homeworkProblemCounter}{1}
+\nobreak\extramarks{Problem \arabic{homeworkProblemCounter}}{}\nobreak{}
+
+%
+% Homework Problem Environment
+%
+% This environment takes an optional argument. When given, it will adjust the
+% problem counter. This is useful for when the problems given for your
+% assignment aren't sequential. See the last 3 problems of this template for an
+% example.
+%
+\newenvironment{homeworkProblem}[1][-1]{
+    \ifnum#1>0
+        \setcounter{homeworkProblemCounter}{#1}
+    \fi
+    \section{Problem \arabic{homeworkProblemCounter}}
+    \setcounter{partCounter}{1}
+    \enterProblemHeader{homeworkProblemCounter}
+}{
+    \exitProblemHeader{homeworkProblemCounter}
+}
+
+%
+% Homework Details
+%   - Title
+%   - Due date
+%   - Class
+%   - Section/Time
+%   - Instructor
+%   - Author
+%
+
+\newcommand{\hmwkTitle}{Worksheet\ \#4 - Random Variables, Expectation, and Variance}
+\newcommand{\hmwkDueDate}{February 5, 2017}
+\newcommand{\hmwkClass}{DSE 210}
+\newcommand{\hmwkClassTime}{}
+\newcommand{\hmwkClassInstructor}{Professor: A. Enis \c{C}etin}
+\newcommand{\hmwkClassTA}{Teaching Assistant: Shivani Agrawal}
+\newcommand{\hmwkAuthorName}{\textbf{Joshua Wilson} \and \textbf{A53228518}}
+
+%
+% Title Page
+%
+
+\title{
+    \vspace{2in}
+    \textmd{\textbf{\hmwkClass:\ \hmwkTitle}}\\
+    \vspace{0.1in}\large{\textit{\hmwkClassInstructor}}\\
+    \vspace{0.1in}\large{\textit{\hmwkClassTA}}
+    \vspace{3in}
+}
+
+\author{\hmwkAuthorName}
+\date{}
+
+\renewcommand{\part}[1]{\textbf{\large Part \Alph{partCounter}}\stepcounter{partCounter}\\}
+
+%
+% Various Helper Commands
+%
+
+% Useful for algorithms
+\newcommand{\alg}[1]{\textsc{\bfseries \footnotesize #1}}
+
+% For derivatives
+\newcommand{\deriv}[1]{\frac{\mathrm{d}}{\mathrm{d}x} (#1)}
+
+% For partial derivatives
+\newcommand{\pderiv}[2]{\frac{\partial}{\partial #1} (#2)}
+
+% Integral dx
+\newcommand{\dx}{\mathrm{d}x}
+
+% Alias for the Solution section header
+\newcommand{\solution}{\textbf{\large Solution}}
+
+\newcommand*{\Perm}[2]{{}_{#1}\!P_{#2}}%
+\newcommand*{\Comb}[2]{{}_{#1}C_{#2}}%
+
+% Probability commands: Expectation, Variance, Covariance, Bias
+\newcommand{\E}{\mathrm{E}}
+\newcommand{\Var}{\mathrm{Var}}
+\newcommand{\Cov}{\mathrm{Cov}}
+\newcommand{\Bias}{\mathrm{Bias}}
+
+\begin{document}
+
+\maketitle
+
+\pagebreak
+
+\begin{homeworkProblem}[2]
+Let X be the number of rolls until a 6 is seen. For any single roll, $p(6) = \cfrac{1}{6}$.  \\ \\
+If p is the probability of the event of interest, then
+$$\mathbb{E}[X] = \sum_{k=1}^{\infty} k \times p(X = k) = \sum_{k=1}^{\infty} k \times p(1 - p)^{k - 1} = \cfrac{1}{p}$$
+Since in this case, $p = p(6) = \cfrac{1}{6}$, $\mathbb{E}[X] = \boxed{6}$
+\end{homeworkProblem}
+
+\begin{homeworkProblem}[4]
+\begin{enumerate}
+\item 
+Let X be the number of people who get out on the $i^{th}$ floor.  \\ \\
+There are 10 floors, so the probability that any one person gets out on the $i^{th}$ floor is $\cfrac{1}{10}$. \\ \\
+There are n people, so the sample space is $\Omega = \{0, 1, 2, 3, \ldots , n\}$. \\ \\
+We can model X as a $binomial(n, p)$ random variable, with $p = \cfrac{1}{10}$, so \\
+$$p(X = 1) = \binom{n}{1}p(1 - p)^{n-1} = np(1-p)^{n-1} = \boxed{n\bigg(\cfrac{1}{10}\bigg)\bigg(\cfrac{9}{10}\bigg)^{n-1}}$$
+\item
+Define random variable $X_i$ such that
+\begin{equation*}
+  X_i = \begin{cases}
+    1, & \text{if 1 person gets out on floor $i$}.\\
+    0, & \text{otherwise}.
+  \end{cases}
+\end{equation*}
+Then $\mathbb{E}[X_i] = n\bigg(\cfrac{1}{10}\bigg)\bigg(\cfrac{9}{10}\bigg)^{n-1}$, as shown in question 4(a). \\ \\
+Let Y be the number of floors in which exactly 1 person gets out.
+$$\mathbb{E}[Y] = \sum_{i=1}^{10} \mathbb{E}[X_i] = 10 \times n \bigg(\cfrac{1}{10}\bigg) \bigg(\cfrac{9}{10})^{n-1} = \boxed{n \cfrac{9}{10}^{n-1}}$$
+
+\end{enumerate}
+\end{homeworkProblem}
+
+\newpage
+
+\begin{homeworkProblem}[6]
+Let $X_i$ be the event that the $i^{th}$ student ends up in the correct bed.  $p(X_i) = \cfrac{1}{n}$. \\
+
+Define random variable $X_i$ such that
+\begin{equation*}
+  X_i = \begin{cases}
+    1, & \text{if $i^{th}$ student gets in correct bed}.\\
+    0, & \text{otherwise}.
+  \end{cases}
+\end{equation*}
+
+$\mathbb{E}[X_i] = 1 \times \cfrac{1}{n} + 0 \times {\big( 1 - \cfrac{1}{n} \big)} = \cfrac{1}{n}$. \\
+
+Now, let X be the number of students in the correct bed.  Then
+$$X = \sum_{i=1}^{n} X_i \text{, and } \mathbb{E}[X] = \mathbb{E}[\sum_{i=1}^{n} X_i] = \sum_{i=1}^{n} \mathbb{E}[X_i] = \sum_{i=1}^{n} \cfrac{1}{n} = \boxed{1}$$
+
+\end{homeworkProblem}
+
+\begin{homeworkProblem}[8]
+$Given: p(1) = p(2) = p(3) = p(4) = \cfrac{1}{8} \text{, and } p(5) = p(6) = \cfrac{1}{4}$.
+\begin{enumerate}
+\item
+Let Z be the outcome of a die roll using a die with the above given probabilities.
+\begin{align*} 
+\mathbb{E}[Z] & = \sum_{k=1}^{8} k \times p(k) \\ 
+& = 1 \times p(1) + 2 \times p(2) + 3 \times p(3) + 4 \times p(4) + 5 \times p(5) + 6 \times p(6) \\
+& = 1 \times \cfrac{1}{8} + 2 \times \cfrac{1}{8} + 3 \times \cfrac{1}{8} + 4 \times \cfrac{1}{8} + 5 \times \cfrac{1}{4} + 6 \times \cfrac{1}{4} \\ 
+& = \cfrac{1 + 2 + 3 + 4}{8} + \cfrac{5 + 6}{4} = \cfrac{32}{8} = \boxed{4} \\ \\
+var[Z] & = \mathbb{E}[Z^2] - \mathbb{E}[Z]^2, \text{ and} \\
+\mathbb{E}[Z^2] & = \cfrac{1^2 + 2^2 + 3^2 + 4^2}{8} + \cfrac{5^2 + 6^2}{4} = 19, \text{ and} \\
+\mathbb{E}[Z]^2 & = 4^2 = 16 \text{, so} \\
+var[Z] & = 19 - 16 = \boxed{3}
+\end{align*}
+
+\item
+Let X be the sum of 10 die rolls.  Then X = 10 $\times$ Z, where Z is a single die roll as defined in 8(a), and \\ \\
+$\mathbb{E}[X] = 10 \times \mathbb{E}[Z] = 10 \times 4 = \boxed{40}$. \\ \\
+Because each die roll is independent, we can apply the variance rule for independent $X_i$'s: \\ \\
+$var(X_1 + \ldots + X_k) = var(X_1) + \ldots + var(X_k)$, so \\ \\
+$var[X] = var[10 \times Z] = 10 \times var[Z] = 10 \times 3 = \boxed{30}$
+
+\item
+Let A be the average of n die rolls. Then $A = \cfrac{1}{n} \sum_{i=1}^{n} Z_i$, where $Z_i$ is the outcome of the $i^{th}$ die roll modeled by random variable Z, defined in 8(a).
+\begin{align*} 
+\mathbb{E}[A] & = \mathbb{E}[\cfrac{1}{n} \sum_{i=1}^{n} Z_i] = \cfrac{1}{n} \sum_{i=1}^{n} \mathbb{E}[Z_i] = \cfrac{1}{n} \times n \times \mathbb{E}[Z_i] = \mathbb{E}[Z_i] = \boxed{4} \\
+var[A] & = var[\cfrac{1}{n} \sum_{i=1}^{n} Z_i] = \Big(\cfrac{1}{n}\Big)^2 \times var[\sum_{i=1}^{n} Z_i] = \cfrac{1}{n^2} \times n \times var[Z_i] = \boxed{\cfrac{3}{n}}
+\end{align*}
+\end{enumerate}
+\end{homeworkProblem}
+
+\begin{homeworkProblem}[10]
+\begin{enumerate}
+\item
+We can model $X_i$ as $binomial(m, \frac{1}{n})$, so $p(X_i = 0) = \binom{m}{0} \bigg(\cfrac{1}{n}\bigg)^0 \bigg(\cfrac{n - 1}{n}\bigg)^m = \boxed{\bigg(\cfrac{n - 1}{n}\bigg)^m}$
+\item
+$X_i \sim binomial(m, \frac{1}{n})$, so $p(X_i = 1) = \boxed{\binom{m}{1} \bigg(\cfrac{1}{n}\bigg)^1 \bigg(\cfrac{n-1}{n}\bigg)^{m-1}}$
+\item
+$X_i \sim binomial(m, \frac{1}{n})$, so $\mathbb{E}[X_i] = m \times \cfrac{1}{n} = \boxed{\cfrac{m}{n}}$
+\item
+$X_i \sim binomial(m, \frac{1}{n})$, so $var[X_i] = \bigg(m \times \cfrac{1}{n}\bigg) \bigg(1 - \cfrac{1}{n}\bigg) = \bigg(\cfrac{m}{n}\bigg) \bigg(\cfrac{n - 1}{n}\bigg) = \boxed{\cfrac{m\ (n - 1)}{n^2}}$
+\end{enumerate}
+\end{homeworkProblem}
+
+\begin{homeworkProblem}[12]
+Let X be the number of coin tosses required to see the same result twice in a row. \\ \\
+Then $p(X = 1) = 0 \text{, and } p(X = k) = \big(\frac{1}{2}\big)^{k - 1} \text{ for } k > 1$.  Thus, \\
+\begin{align*}
+\mathbb{E}[X] & = 1 \times p(X = 1) + 2 \times p(X = 2) + 3 \times p(X = 3) + \ldots \\
+& = 1 \times 0 + 2 \times \bigg(\cfrac{1}{2}\bigg)^{2-1} + 3 \times \bigg(\cfrac{1}{2}\bigg)^{3-1} + \ldots \\
+& = 1 \times 0 + 2 \times \bigg(\cfrac{1}{2}\bigg)^1 + 3 \times \bigg(\cfrac{1}{2}\bigg)^2 + \ldots \\
+& = 1 \times 0 + 2 \times \cfrac{1}{2} + 3 \times \cfrac{1}{4} + \ldots \\
+& = \sum_{k=2}^{\infty} k \bigg(\cfrac{1}{2}\bigg)^{k-1} = \boxed{3}
+\end{align*}
+
+\end{homeworkProblem}
+
+\end{document}
+
+
+
+

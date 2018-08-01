@@ -1,0 +1,679 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Cluster &#8212; DSE_capstone 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">DSE_capstone 0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for Cluster</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">sklearn</span> <span class="k">import</span> <span class="n">cluster</span><span class="p">,</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">mixture</span>
+<span class="kn">from</span> <span class="nn">sklearn.neighbors</span> <span class="k">import</span> <span class="n">kneighbors_graph</span>
+<span class="kn">from</span> <span class="nn">sklearn.preprocessing</span> <span class="k">import</span> <span class="n">StandardScaler</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">cycle</span><span class="p">,</span> <span class="n">islice</span>
+<span class="kn">import</span> <span class="nn">hdbscan</span>
+<span class="kn">import</span> <span class="nn">joblib</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+
+<span class="kn">from</span> <span class="nn">scipy.sparse</span> <span class="k">import</span> <span class="n">csr_matrix</span>
+<span class="kn">from</span> <span class="nn">sklearn.decomposition</span> <span class="k">import</span> <span class="n">PCA</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">create_engine</span>
+<span class="kn">from</span> <span class="nn">sklearn</span> <span class="k">import</span> <span class="n">preprocessing</span>
+
+
+<div class="viewcode-block" id="Cluster"><a class="viewcode-back" href="../Cluster.html#Cluster.Cluster">[docs]</a><span class="k">class</span> <span class="nc">Cluster</span><span class="p">:</span>
+
+    
+    <span class="sd">&quot;&quot;&quot;Data and methods to cluster traffic data for modeling.</span>
+
+<span class="sd">    This class is used to cluster traffic data by 1 or more methods and store the clusters</span>
+<span class="sd">    in a table for use by other objects.</span>
+
+
+<span class="sd">    Available clustering methods:</span>
+<span class="sd">    MiniBatchKMeans:         Select all segments within a given radius of a provided point.</span>
+
+<span class="sd">    AffinityPropagation:   Select all segments with a given bounding box.</span>
+
+<span class="sd">    MeanShift:         Select a random sample of the provided percent from all segments.</span>
+
+<span class="sd">    SpectralClustering:         Select all segments on a given street name.</span>
+
+<span class="sd">    Ward:      Select all segments of a given road type.</span>
+
+<span class="sd">    AgglomerativeClustering:         Select all segments with an Ignore flag of True.</span>
+
+<span class="sd">    DBSCAN:    Select all segments such that the provided percent of positive traffic points are retained.</span>
+
+<span class="sd">    Birch:    Select all segments such that the provided percent of positive traffic points are retained.</span>
+
+<span class="sd">    HDBSCAN:    Select all segments such that the provided percent of positive traffic points are retained.</span>
+
+<span class="sd">    KMeans:    Select all segments such that the provided percent of positive traffic points are retained.</span>
+
+<span class="sd">    This class will be used in the Pipeline notebook for exploration purposes and in the Production</span>
+<span class="sd">    python code used to perform the actual clustering and modeling of traffic data.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conn</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">split_type</span><span class="p">,</span> <span class="n">num_clusters</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Constructor for Cluster object.</span>
+
+<span class="sd">        :param conn: database connection object.</span>
+<span class="sd">        :param args: dict of arguments read from the arguments file.</span>
+<span class="sd">        :param data: data to cluster.</span>
+<span class="sd">        :param split_type: Split train test data randomly or by date to allow testing by specific date ranges.</span>
+<span class="sd">        :param num_clusters: Number of clusters to create.</span>
+<span class="sd">        :return: Cluster instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">conn</span> <span class="o">=</span> <span class="n">conn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">args</span> <span class="o">=</span> <span class="n">args</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">split_type</span> <span class="o">=</span> <span class="n">split_type</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">pca_model</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cluster_model</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">algorithm</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="s1">&#39;cluster_algorithm&#39;</span><span class="p">]</span>
+
+        <span class="c1"># http://scikit-learn.org/stable/auto_examples/cluster/plot_cluster_comparison.html</span>
+        <span class="n">hdbsc</span> <span class="o">=</span> <span class="n">hdbscan</span><span class="o">.</span><span class="n">HDBSCAN</span><span class="p">(</span><span class="n">min_cluster_size</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="n">affinity_propagation</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">AffinityPropagation</span><span class="p">()</span>
+        <span class="n">ms</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">MeanShift</span><span class="p">(</span><span class="n">bin_seeding</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">spectral</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">SpectralClustering</span><span class="p">(</span><span class="n">n_clusters</span><span class="o">=</span><span class="n">num_clusters</span><span class="p">,</span> 
+                                              <span class="n">eigen_solver</span><span class="o">=</span><span class="s1">&#39;arpack&#39;</span><span class="p">,</span>
+                                              <span class="n">affinity</span><span class="o">=</span><span class="s2">&quot;nearest_neighbors&quot;</span><span class="p">,</span> 
+                                              <span class="n">random_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;seed&#39;</span><span class="p">])</span>
+        <span class="n">ward</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">AgglomerativeClustering</span><span class="p">(</span><span class="n">n_clusters</span><span class="o">=</span><span class="n">num_clusters</span><span class="p">,</span> 
+                                               <span class="n">linkage</span><span class="o">=</span><span class="s1">&#39;ward&#39;</span><span class="p">)</span>
+        <span class="n">birch</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">Birch</span><span class="p">(</span><span class="n">n_clusters</span><span class="o">=</span><span class="n">num_clusters</span><span class="p">)</span>
+        <span class="n">two_means</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">MiniBatchKMeans</span><span class="p">(</span><span class="n">n_clusters</span><span class="o">=</span><span class="n">num_clusters</span><span class="p">,</span>
+                                            <span class="n">random_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;seed&#39;</span><span class="p">])</span>
+        <span class="n">average_linkage</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">AgglomerativeClustering</span><span class="p">(</span><span class="n">linkage</span><span class="o">=</span><span class="s2">&quot;average&quot;</span><span class="p">,</span> 
+                                                          <span class="n">n_clusters</span><span class="o">=</span><span class="n">num_clusters</span><span class="p">)</span>
+        <span class="n">hdbsc</span> <span class="o">=</span> <span class="n">hdbscan</span><span class="o">.</span><span class="n">HDBSCAN</span><span class="p">(</span><span class="n">min_cluster_size</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="n">kmeans</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">KMeans</span><span class="p">(</span><span class="n">n_clusters</span><span class="o">=</span><span class="n">num_clusters</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;seed&#39;</span><span class="p">])</span>
+        <span class="n">dbscan</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">DBSCAN</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">clustering_algorithms</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;MiniBatchKMeans&#39;</span><span class="p">:</span> <span class="n">two_means</span><span class="p">,</span>
+            <span class="s1">&#39;AffinityPropagation&#39;</span><span class="p">:</span> <span class="n">affinity_propagation</span><span class="p">,</span>
+            <span class="s1">&#39;MeanShift&#39;</span><span class="p">:</span> <span class="n">ms</span><span class="p">,</span>
+            <span class="s1">&#39;SpectralClustering&#39;</span><span class="p">:</span> <span class="n">spectral</span><span class="p">,</span>
+            <span class="s1">&#39;Ward&#39;</span><span class="p">:</span> <span class="n">ward</span><span class="p">,</span>
+            <span class="s1">&#39;AgglomerativeClustering&#39;</span><span class="p">:</span> <span class="n">average_linkage</span><span class="p">,</span>
+            <span class="s1">&#39;DBSCAN&#39;</span><span class="p">:</span> <span class="n">dbscan</span><span class="p">,</span>
+            <span class="s1">&#39;Birch&#39;</span><span class="p">:</span> <span class="n">birch</span><span class="p">,</span>
+            <span class="s1">&#39;HDBSCAN&#39;</span><span class="p">:</span> <span class="n">hdbsc</span><span class="p">,</span>
+            <span class="s1">&#39;KMeans&#39;</span><span class="p">:</span> <span class="n">kmeans</span>
+        <span class="p">}</span> 
+
+<div class="viewcode-block" id="Cluster.scale_matrix"><a class="viewcode-back" href="../Cluster.html#Cluster.Cluster.scale_matrix">[docs]</a>    <span class="k">def</span> <span class="nf">scale_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">matrix_df</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Standardize matrix feature columns using sklearn.preprocessing.scale.</span>
+
+<span class="sd">        :param matrix_df: Data frame of all segment and time combinations and feature columns.</span>
+<span class="sd">        :return: Data frame containing only feature columns with scaled values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;scaling features...&#39;</span><span class="p">)</span>
+
+        <span class="n">originalkeys</span> <span class="o">=</span> <span class="n">matrix_df</span><span class="p">[[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span><span class="s1">&#39;date&#39;</span><span class="p">,</span><span class="s1">&#39;time&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+        <span class="n">originalkeys</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">originalkeys</span><span class="o">.</span><span class="n">index</span>
+
+        <span class="n">columns</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">matrix_df</span><span class="p">)</span>
+        <span class="n">columns</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s1">&#39;segment_id&#39;</span><span class="p">)</span>
+        <span class="n">columns</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s1">&#39;date&#39;</span><span class="p">)</span>
+        <span class="n">columns</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+        <span class="n">data_to_scale</span> <span class="o">=</span> <span class="n">matrix_df</span><span class="p">[</span><span class="n">columns</span><span class="p">]</span>
+        <span class="n">matrix_df_scaled_tmp</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">preprocessing</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">data_to_scale</span><span class="p">),</span> <span class="n">columns</span> <span class="o">=</span> <span class="n">columns</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+        <span class="n">matrix_df_scaled_tmp</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">matrix_df_scaled_tmp</span><span class="o">.</span><span class="n">index</span>
+
+        <span class="n">matrix_df_scaled_labels_tmp</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">matrix_df_scaled_tmp</span><span class="p">,</span> <span class="n">originalkeys</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">])</span>
+        <span class="n">matrix_df_scaled</span> <span class="o">=</span> <span class="n">matrix_df_scaled_tmp</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">])</span>
+        <span class="n">matrix_df_scaled_withlabels</span> <span class="o">=</span> <span class="n">matrix_df_scaled_labels_tmp</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">])</span>
+        
+        <span class="k">return</span> <span class="n">matrix_df_scaled_withlabels</span></div>
+    
+<div class="viewcode-block" id="Cluster.run_PCA"><a class="viewcode-back" href="../Cluster.html#Cluster.Cluster.run_PCA">[docs]</a>    <span class="k">def</span> <span class="nf">run_PCA</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sparse_matrix</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Perform PCA on the given sparse matrix.</span>
+
+<span class="sd">        Perform PCA on the given sparse matrix and dump the PCA object to a pickle file. Sparse matrix feature array</span>
+<span class="sd">        for each segment contains the cluster variable average over a time array of one week.</span>
+
+<span class="sd">        :param sparse_matrix: spare matrix as created by self.create_sparse_matrix</span>
+<span class="sd">        :return: The transformed data to cluster and the PCA model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">pca_explained</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">PCA</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">sparse_matrix</span><span class="p">)</span><span class="o">.</span><span class="n">explained_variance_ratio_</span><span class="p">)</span>
+        <span class="n">pca_explainedby</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">pca_explained</span><span class="o">&gt;=</span><span class="mf">0.9</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">pca</span> <span class="o">=</span> <span class="n">PCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="n">pca_explainedby</span><span class="p">)</span>
+        <span class="n">pca</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">sparse_matrix</span><span class="p">)</span>
+        
+        <span class="n">today</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="s1">&#39;sparse_pca_model.pkl&#39;</span>
+        <span class="n">joblib</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">pca</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">pca</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">sparse_matrix</span><span class="p">),</span> <span class="n">pca</span> </div>
+        
+<div class="viewcode-block" id="Cluster.run_PCA_long"><a class="viewcode-back" href="../Cluster.html#Cluster.Cluster.run_PCA_long">[docs]</a>    <span class="k">def</span> <span class="nf">run_PCA_long</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sparse_matrix</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Perform PCA on the given sparse long format matrix.</span>
+
+<span class="sd">        Perform PCA on the given long format sparse matrix and dump the PCA object to a pickle file. The long format</span>
+<span class="sd">        sparse matrix feature array for each segment contains cluster variable over time array of non-agreggated</span>
+<span class="sd">        timespan of the dataset.</span>
+
+<span class="sd">        :param sparse_matrix: spare matrix as created by self.create_sparse_matrix_long</span>
+<span class="sd">        :return: The transformed data to cluster and the PCA model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">pca_explained</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">PCA</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">sparse_matrix</span><span class="p">)</span><span class="o">.</span><span class="n">explained_variance_ratio_</span><span class="p">)</span>
+        <span class="n">pca_explainedby</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">pca_explained</span><span class="o">&gt;=</span><span class="mf">0.9</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">pca</span> <span class="o">=</span> <span class="n">PCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="n">pca_explainedby</span><span class="p">)</span>
+        <span class="n">pca</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">sparse_matrix</span><span class="p">)</span>
+        
+        <span class="n">today</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="s1">&#39;sparse_long_pca_model.pkl&#39;</span>
+        <span class="n">joblib</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">pca</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">pca</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">sparse_matrix</span><span class="p">),</span> <span class="n">pca</span>                 </div>
+        
+<div class="viewcode-block" id="Cluster.create_sparse_matrix"><a class="viewcode-back" href="../Cluster.html#Cluster.Cluster.create_sparse_matrix">[docs]</a>    <span class="k">def</span> <span class="nf">create_sparse_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">matrix_df</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create sparse matrix for use in clustering the data.</span>
+
+<span class="sd">        In addition to creating and returning the sparse matrix, this function also writes the sparse matrix</span>
+<span class="sd">        to the database for use in assigning clusters to new data at a later time. it creates database tables</span>
+<span class="sd">        clust_sparse_avebysegment_[split_type] and clust_sparse_avebyrt_[split_type] for use in clustering the data.</span>
+<span class="sd">        Sparse matrix feature array for each segment contains the cluster variable average over a time array of one week.</span>
+
+<span class="sd">        :param matrix_df: Pandas data frame containing all relevant segments and time buckets.</span>
+<span class="sd">        :return: tuple of 2 data frames. 1. Unique segments 2. The sparse matrix.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;creating sparse matrix...&#39;</span><span class="p">)</span>
+        <span class="n">sparse_seg_tmp_df</span> <span class="o">=</span> <span class="n">matrix_df</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span><span class="s1">&#39;day_of_week&#39;</span><span class="p">,</span><span class="s1">&#39;time_idx&#39;</span><span class="p">])[</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;cluster_variable&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+        <span class="n">sparse_rt_tmp_df</span> <span class="o">=</span> <span class="n">matrix_df</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;road_type&#39;</span><span class="p">,</span><span class="s1">&#39;day_of_week&#39;</span><span class="p">,</span><span class="s1">&#39;time_idx&#39;</span><span class="p">])[</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;cluster_variable&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+        <span class="n">time_seg_df</span> <span class="o">=</span> <span class="n">sparse_seg_tmp_df</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;day_of_week&#39;</span><span class="p">,</span><span class="s1">&#39;time_idx&#39;</span><span class="p">])[</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;cluster_variable&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+        <span class="n">time_rt_df</span> <span class="o">=</span> <span class="n">sparse_rt_tmp_df</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;day_of_week&#39;</span><span class="p">,</span><span class="s1">&#39;time_idx&#39;</span><span class="p">])[</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;cluster_variable&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+        <span class="c1">#time_seg_df[&#39;time_id&#39;] = time_seg_df.index</span>
+        <span class="c1">#time_rt_df[&#39;time_id&#39;] = time_rt_df.index</span>
+        <span class="n">times</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">24</span><span class="o">*</span><span class="mi">60</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;time_resolution&#39;</span><span class="p">]))</span>
+        <span class="n">full_time_idx</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="n">i</span> <span class="o">*</span> <span class="mi">30</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">times</span><span class="p">],</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;time_idx&#39;</span><span class="p">])</span>
+        <span class="n">full_time_idx</span><span class="p">[</span><span class="s1">&#39;key&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">full_day_of_week</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">7</span><span class="p">)),</span> <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;day_of_week&#39;</span><span class="p">])</span>
+        <span class="n">full_day_of_week</span><span class="p">[</span><span class="s1">&#39;key&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">full_times</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">full_time_idx</span><span class="p">,</span> <span class="n">full_day_of_week</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s1">&#39;key&#39;</span><span class="p">)</span>
+        <span class="n">full_times</span><span class="p">[</span><span class="s1">&#39;time_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">full_times</span><span class="o">.</span><span class="n">index</span>
+        <span class="n">time_seg_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">time_seg_df</span><span class="p">,</span> <span class="n">full_times</span><span class="p">[[</span><span class="s1">&#39;time_idx&#39;</span><span class="p">,</span><span class="s1">&#39;day_of_week&#39;</span><span class="p">,</span><span class="s1">&#39;time_id&#39;</span><span class="p">]],</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;time_idx&#39;</span><span class="p">,</span><span class="s1">&#39;day_of_week&#39;</span><span class="p">])</span>
+        <span class="n">time_rt_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">time_rt_df</span><span class="p">,</span> <span class="n">full_times</span><span class="p">[[</span><span class="s1">&#39;time_idx&#39;</span><span class="p">,</span><span class="s1">&#39;day_of_week&#39;</span><span class="p">,</span><span class="s1">&#39;time_id&#39;</span><span class="p">]],</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;time_idx&#39;</span><span class="p">,</span><span class="s1">&#39;day_of_week&#39;</span><span class="p">])</span>
+        
+        <span class="n">matrix_seg_keys_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">sparse_seg_tmp_df</span><span class="p">,</span> <span class="n">time_seg_df</span><span class="p">[[</span><span class="s1">&#39;time_id&#39;</span><span class="p">,</span><span class="s1">&#39;day_of_week&#39;</span><span class="p">,</span><span class="s1">&#39;time_idx&#39;</span><span class="p">]],</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;day_of_week&#39;</span><span class="p">,</span><span class="s1">&#39;time_idx&#39;</span><span class="p">])</span>
+        <span class="n">matrix_rt_keys_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">sparse_rt_tmp_df</span><span class="p">,</span> <span class="n">time_rt_df</span><span class="p">[[</span><span class="s1">&#39;time_id&#39;</span><span class="p">,</span><span class="s1">&#39;day_of_week&#39;</span><span class="p">,</span><span class="s1">&#39;time_idx&#39;</span><span class="p">]],</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;day_of_week&#39;</span><span class="p">,</span><span class="s1">&#39;time_idx&#39;</span><span class="p">])</span>
+
+        <span class="n">time_seg_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">matrix_seg_keys_df</span><span class="p">[</span><span class="s1">&#39;time_id&#39;</span><span class="p">])</span>
+        <span class="n">time_rt_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">matrix_rt_keys_df</span><span class="p">[</span><span class="s1">&#39;time_id&#39;</span><span class="p">])</span>
+        <span class="n">segment_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">matrix_seg_keys_df</span><span class="p">[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">])</span>
+        <span class="n">rt_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">matrix_rt_keys_df</span><span class="p">[</span><span class="s1">&#39;road_type&#39;</span><span class="p">])</span>
+
+        <span class="n">uniquesegments</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">segment_array</span><span class="p">)))</span>
+        <span class="n">uniquerts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">rt_array</span><span class="p">)))</span>
+        <span class="n">keyuniquesegments</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">uniquesegments</span><span class="p">)))</span>
+        <span class="n">keyuniquerts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">uniquerts</span><span class="p">)))</span>
+        <span class="n">uniquesegments_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s1">&#39;segmentskey&#39;</span><span class="p">:</span><span class="n">keyuniquesegments</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">:</span><span class="n">uniquesegments</span><span class="p">})</span>
+        <span class="n">uniquerts_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s1">&#39;roadtypekey&#39;</span><span class="p">:</span><span class="n">keyuniquerts</span><span class="p">,</span> <span class="s1">&#39;road_type&#39;</span><span class="p">:</span><span class="n">uniquerts</span><span class="p">})</span>
+
+        <span class="n">segments_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">segment_array</span><span class="p">,</span> <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">])</span>
+        <span class="n">rt_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rt_array</span><span class="p">,</span> <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;road_type&#39;</span><span class="p">])</span>
+        <span class="n">segments_keys_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">segments_df</span><span class="p">,</span> <span class="n">uniquesegments_df</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">])</span>
+        <span class="n">rt_keys_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">rt_df</span><span class="p">,</span> <span class="n">uniquerts_df</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;road_type&#39;</span><span class="p">])</span>
+        <span class="n">segmentkeys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">segments_keys_df</span><span class="p">[</span><span class="s1">&#39;segmentskey&#39;</span><span class="p">])</span>
+        <span class="n">rtkeys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">rt_keys_df</span><span class="p">[</span><span class="s1">&#39;road_type&#39;</span><span class="p">])</span>
+
+        <span class="n">level_array_seg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">matrix_seg_keys_df</span><span class="p">[</span><span class="s1">&#39;level_max&#39;</span><span class="p">])</span>
+        <span class="n">sparse_matrix_s</span> <span class="o">=</span> <span class="n">csr_matrix</span><span class="p">((</span><span class="n">level_array_seg</span><span class="p">,</span> <span class="p">(</span><span class="n">segmentkeys</span><span class="p">,</span><span class="n">time_seg_array</span><span class="p">)))</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span>
+        <span class="n">sparse_matrix_seg</span> <span class="o">=</span> <span class="n">preprocessing</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">sparse_matrix_s</span><span class="p">)</span>
+        <span class="n">level_array_rt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">matrix_rt_keys_df</span><span class="p">[</span><span class="s1">&#39;level_max&#39;</span><span class="p">])</span>
+        <span class="n">sparse_matrix_r</span> <span class="o">=</span> <span class="n">csr_matrix</span><span class="p">((</span><span class="n">level_array_rt</span><span class="p">,</span> <span class="p">(</span><span class="n">rtkeys</span><span class="p">,</span><span class="n">time_rt_array</span><span class="p">)))</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span>
+        <span class="n">sparse_matrix_rt</span> <span class="o">=</span> <span class="n">preprocessing</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">sparse_matrix_r</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;perform_pca&#39;</span><span class="p">]:</span>
+            <span class="n">sparse_matrix_seg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pca_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_PCA</span><span class="p">(</span><span class="n">sparse_matrix_seg</span><span class="p">)</span>
+            <span class="n">sparse_matrix_rt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pca_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_PCA</span><span class="p">(</span><span class="n">sparse_matrix_rt</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sparse_matrix_seg</span> <span class="o">=</span> <span class="n">sparse_matrix_seg</span>
+            <span class="n">sparse_matrix_rt</span> <span class="o">=</span> <span class="n">sparse_matrix_rt</span>
+        
+        <span class="n">sparse_matrix_withsegkey</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">sparse_matrix_seg</span><span class="p">)</span>
+        <span class="n">sparse_matrix_withrtkey</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">sparse_matrix_rt</span><span class="p">)</span>
+        <span class="n">sparse_matrix_withsegkey</span><span class="p">[</span><span class="s1">&#39;segmentskey&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sparse_matrix_withsegkey</span><span class="o">.</span><span class="n">index</span>
+        <span class="n">sparse_matrix_withseg</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">uniquesegments_df</span><span class="p">,</span> <span class="n">sparse_matrix_withsegkey</span><span class="p">,</span>  <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;segmentskey&#39;</span><span class="p">])</span>
+        <span class="n">sparse_matrix_withrtkey</span><span class="p">[</span><span class="s1">&#39;roadtypekey&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sparse_matrix_withrtkey</span><span class="o">.</span><span class="n">index</span>
+        <span class="n">sparse_matrix_withrt</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">uniquerts_df</span><span class="p">,</span> <span class="n">sparse_matrix_withrtkey</span><span class="p">,</span>  <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;roadtypekey&#39;</span><span class="p">])</span>
+        
+        <span class="c1"># write sparse_matrix to database as &#39;clustering&#39; table</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;writing sparse matrix to db...&#39;</span><span class="p">)</span>
+        <span class="n">sqlalchemy_conn_str</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;../conf/sqlalchemy_conn_str.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="n">engine</span> <span class="o">=</span> <span class="n">create_engine</span><span class="p">(</span><span class="n">sqlalchemy_conn_str</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_type</span> <span class="o">==</span> <span class="s1">&#39;random&#39;</span><span class="p">:</span>
+            <span class="n">sparse_matrix_withseg</span><span class="o">.</span><span class="n">to_sql</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;clust_sparse_avebysegment_random&#39;</span><span class="p">,</span> <span class="n">con</span><span class="o">=</span><span class="n">engine</span><span class="p">,</span> <span class="n">if_exists</span><span class="o">=</span><span class="s1">&#39;replace&#39;</span><span class="p">)</span>
+            <span class="n">sparse_matrix_withrt</span><span class="o">.</span><span class="n">to_sql</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;clust_sparse_avebyrt_random&#39;</span><span class="p">,</span> <span class="n">con</span><span class="o">=</span><span class="n">engine</span><span class="p">,</span> <span class="n">if_exists</span><span class="o">=</span><span class="s1">&#39;replace&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_type</span> <span class="o">==</span> <span class="s1">&#39;date&#39;</span><span class="p">:</span>
+            <span class="n">sparse_matrix_withseg</span><span class="o">.</span><span class="n">to_sql</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;clust_sparse_avebysegment_date&#39;</span><span class="p">,</span> <span class="n">con</span><span class="o">=</span><span class="n">engine</span><span class="p">,</span> <span class="n">if_exists</span><span class="o">=</span><span class="s1">&#39;replace&#39;</span><span class="p">)</span>
+            <span class="n">sparse_matrix_withrt</span><span class="o">.</span><span class="n">to_sql</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;clust_sparse_avebyrt_date&#39;</span><span class="p">,</span> <span class="n">con</span><span class="o">=</span><span class="n">engine</span><span class="p">,</span> <span class="n">if_exists</span><span class="o">=</span><span class="s1">&#39;replace&#39;</span><span class="p">)</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;returning train sparse matrix...&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">uniquesegments_df</span><span class="p">,</span> <span class="n">sparse_matrix_seg</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Cluster.create_sparse_matrix_long"><a class="viewcode-back" href="../Cluster.html#Cluster.Cluster.create_sparse_matrix_long">[docs]</a>    <span class="k">def</span> <span class="nf">create_sparse_matrix_long</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">matrix_df</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create sparse matrix in long format for use in clustering the data.</span>
+
+<span class="sd">        In addition to creating and returning the long format sparse matrix, this function also writes the sparse matrix</span>
+<span class="sd">        to the database for use in assigning clusters to new data at a later time. It create database tables</span>
+<span class="sd">        clust_sparse_long_avebysegment_[split_type] and clust_sparse_long_avebyrt_[split_type] for use in clustering</span>
+<span class="sd">        the data. Sparse matrix feature array for each segment contains cluster variable over a time array of</span>
+<span class="sd">        non-aggregated timespan of the dataset.</span>
+
+<span class="sd">        :param matrix_df: Pandas data frame containing all relevant segments and time buckets.</span>
+<span class="sd">        :return: tuple of 2 data frames. 1. Unique segments 2. The sparse matrix.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">time_df_tmp</span> <span class="o">=</span> <span class="n">matrix_df</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;date_idx&#39;</span><span class="p">,</span><span class="s1">&#39;time_idx&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">count</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+        <span class="n">time_df</span> <span class="o">=</span> <span class="n">time_df_tmp</span><span class="p">[[</span><span class="s1">&#39;date_idx&#39;</span><span class="p">,</span><span class="s1">&#39;time_idx&#39;</span><span class="p">]]</span>
+        <span class="n">time_df</span><span class="p">[</span><span class="s1">&#39;time_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">time_df</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">matrix_df_tid</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">matrix_df</span><span class="p">,</span> <span class="n">time_df</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;date_idx&#39;</span><span class="p">,</span><span class="s1">&#39;time_idx&#39;</span><span class="p">])</span>
+
+        <span class="n">time_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">matrix_df_tid</span><span class="p">[</span><span class="s1">&#39;time_id&#39;</span><span class="p">])</span>
+        <span class="n">segment_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">matrix_df_tid</span><span class="p">[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">])</span>
+
+        <span class="n">uniquesegments</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">segment_array</span><span class="p">)))</span>
+        <span class="n">keyuniquesegments</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">uniquesegments</span><span class="p">)))</span>
+        <span class="n">uniquesegments_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s1">&#39;segmentskey&#39;</span><span class="p">:</span><span class="n">keyuniquesegments</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">:</span><span class="n">uniquesegments</span><span class="p">})</span>
+
+        <span class="n">segments_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">segment_array</span><span class="p">,</span> <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">])</span>
+        <span class="n">segments_keys_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">segments_df</span><span class="p">,</span> <span class="n">uniquesegments_df</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">])</span>
+        <span class="n">segmentkeys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">segments_keys_df</span><span class="p">[</span><span class="s1">&#39;segmentskey&#39;</span><span class="p">])</span>
+
+        <span class="n">level_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">matrix_df_tid</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;cluster_variable&#39;</span><span class="p">]])</span>
+        <span class="n">sparse_matrix</span> <span class="o">=</span> <span class="n">csr_matrix</span><span class="p">((</span><span class="n">level_array</span><span class="p">,</span> <span class="p">(</span><span class="n">segmentkeys</span><span class="p">,</span><span class="n">time_array</span><span class="p">)))</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span>
+        <span class="n">sparse_matrix</span> <span class="o">=</span> <span class="n">preprocessing</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">sparse_matrix</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;perform_pca&#39;</span><span class="p">]:</span>
+            <span class="n">data_to_cluster</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pca_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_PCA_long</span><span class="p">(</span><span class="n">sparse_matrix</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data_to_cluster</span> <span class="o">=</span> <span class="n">sparse_matrix</span>
+
+        <span class="n">sparse_matrix_withsegkey</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data_to_cluster</span><span class="p">)</span>
+        <span class="n">sparse_matrix_withsegkey</span><span class="p">[</span><span class="s1">&#39;segmentskey&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sparse_matrix_withsegkey</span><span class="o">.</span><span class="n">index</span>
+        <span class="n">sparse_matrix_withseg</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">uniquesegments_df</span><span class="p">,</span> <span class="n">sparse_matrix_withsegkey</span><span class="p">,</span>  <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;segmentskey&#39;</span><span class="p">])</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;writing sparse matrix_long to db...&#39;</span><span class="p">)</span>
+        <span class="n">sqlalchemy_conn_str</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;../conf/sqlalchemy_conn_str.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="n">engine</span> <span class="o">=</span> <span class="n">create_engine</span><span class="p">(</span><span class="n">sqlalchemy_conn_str</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_type</span> <span class="o">==</span> <span class="s1">&#39;random&#39;</span><span class="p">:</span>
+            <span class="n">sparse_matrix_withseg</span><span class="o">.</span><span class="n">to_sql</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;clust_sparse_long_avebysegment_random&#39;</span><span class="p">,</span> <span class="n">con</span><span class="o">=</span><span class="n">engine</span><span class="p">,</span> <span class="n">if_exists</span><span class="o">=</span><span class="s1">&#39;replace&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_type</span> <span class="o">==</span> <span class="s1">&#39;date&#39;</span><span class="p">:</span>
+            <span class="n">sparse_matrix_withseg</span><span class="o">.</span><span class="n">to_sql</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;clust_sparse_long_avebysegment_date&#39;</span><span class="p">,</span> <span class="n">con</span><span class="o">=</span><span class="n">engine</span><span class="p">,</span> <span class="n">if_exists</span><span class="o">=</span><span class="s1">&#39;replace&#39;</span><span class="p">)</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;returning train sparse_long matrix...&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">uniquesegments_df</span><span class="p">,</span> <span class="n">data_to_cluster</span><span class="p">)</span></div>
+    
+        
+<div class="viewcode-block" id="Cluster.create_nonsparse_matrix"><a class="viewcode-back" href="../Cluster.html#Cluster.Cluster.create_nonsparse_matrix">[docs]</a>    <span class="k">def</span> <span class="nf">create_nonsparse_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">matrix_df</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create non-sparse matrix for use in clustering the data.</span>
+
+<span class="sd">        In addition to creating and returning the non-sparse matrix, this function also writes the non-sparse matrix</span>
+<span class="sd">        to the database for use in assigning clusters to new data at a later time. It creates database tables</span>
+<span class="sd">        clust_nonsparse_avebysegment_[split_type] and clust_nonsparse_avebyrt_[split_type] for use in clustering the</span>
+<span class="sd">        data. Nonsparse matrix feature array for each segment-time record contains all features in matrix_df.</span>
+
+<span class="sd">        :param matrix_df: Pandas data frame containing all relevant segments and time buckets.</span>
+<span class="sd">        :return: tuple of 2 data frames. 1. Unique segments 2. The non-sparse matrix.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;creating nonsparse matrix...&#39;</span><span class="p">)</span>
+        <span class="n">clustering_df_tmp</span> <span class="o">=</span> <span class="n">matrix_df</span><span class="p">[[</span><span class="s1">&#39;date&#39;</span><span class="p">,</span><span class="s1">&#39;time&#39;</span><span class="p">,</span><span class="s1">&#39;date_idx&#39;</span><span class="p">,</span> <span class="s1">&#39;time_idx&#39;</span><span class="p">,</span> <span class="s1">&#39;day_of_week&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;road_type&#39;</span><span class="p">,</span> <span class="s1">&#39;lat1&#39;</span><span class="p">,</span> <span class="s1">&#39;lat2&#39;</span><span class="p">,</span> <span class="s1">&#39;lon1&#39;</span><span class="p">,</span> <span class="s1">&#39;lon2&#39;</span><span class="p">,</span> <span class="s1">&#39;level_min&#39;</span><span class="p">,</span> <span class="s1">&#39;level_max&#39;</span><span class="p">,</span> <span class="s1">&#39;level_mean&#39;</span><span class="p">,</span> <span class="s1">&#39;level_count&#39;</span><span class="p">,</span> <span class="s1">&#39;level_binary&#39;</span><span class="p">]]</span>
+        <span class="n">seg_averages</span> <span class="o">=</span> <span class="n">clustering_df_tmp</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;day_of_week&#39;</span><span class="p">,</span> <span class="s1">&#39;time_idx&#39;</span><span class="p">])[[</span><span class="s1">&#39;level_min&#39;</span><span class="p">,</span> <span class="s1">&#39;level_max&#39;</span><span class="p">,</span> <span class="s1">&#39;level_mean&#39;</span><span class="p">,</span> <span class="s1">&#39;level_count&#39;</span><span class="p">,</span> <span class="s1">&#39;level_binary&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+        <span class="n">rt_averages</span> <span class="o">=</span> <span class="n">clustering_df_tmp</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;road_type&#39;</span><span class="p">,</span> <span class="s1">&#39;day_of_week&#39;</span><span class="p">,</span> <span class="s1">&#39;time_idx&#39;</span><span class="p">])[[</span><span class="s1">&#39;level_min&#39;</span><span class="p">,</span> <span class="s1">&#39;level_max&#39;</span><span class="p">,</span> <span class="s1">&#39;level_mean&#39;</span><span class="p">,</span> <span class="s1">&#39;level_count&#39;</span><span class="p">,</span> <span class="s1">&#39;level_binary&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+        
+        <span class="c1"># write nonsparse_matrix_db to database as &#39;clustering&#39; table</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;writing nonsparse matrix to db...&#39;</span><span class="p">)</span>
+        <span class="n">sqlalchemy_conn_str</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;../conf/sqlalchemy_conn_str.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="n">engine</span> <span class="o">=</span> <span class="n">create_engine</span><span class="p">(</span><span class="n">sqlalchemy_conn_str</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_type</span> <span class="o">==</span> <span class="s1">&#39;random&#39;</span><span class="p">:</span>
+            <span class="n">seg_averages</span><span class="o">.</span><span class="n">to_sql</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;clust_nonsparse_avebysegment_random&#39;</span><span class="p">,</span> <span class="n">con</span><span class="o">=</span><span class="n">engine</span><span class="p">,</span> <span class="n">if_exists</span><span class="o">=</span><span class="s1">&#39;replace&#39;</span><span class="p">)</span>
+            <span class="n">rt_averages</span><span class="o">.</span><span class="n">to_sql</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;clust_nonsparse_avebyrt_random&#39;</span><span class="p">,</span> <span class="n">con</span><span class="o">=</span><span class="n">engine</span><span class="p">,</span> <span class="n">if_exists</span><span class="o">=</span><span class="s1">&#39;replace&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_type</span> <span class="o">==</span> <span class="s1">&#39;date&#39;</span><span class="p">:</span>
+            <span class="n">seg_averages</span><span class="o">.</span><span class="n">to_sql</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;clust_nonsparse_avebysegment_date&#39;</span><span class="p">,</span> <span class="n">con</span><span class="o">=</span><span class="n">engine</span><span class="p">,</span> <span class="n">if_exists</span><span class="o">=</span><span class="s1">&#39;replace&#39;</span><span class="p">)</span>
+            <span class="n">rt_averages</span><span class="o">.</span><span class="n">to_sql</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;clust_nonsparse_avebyrt_date&#39;</span><span class="p">,</span> <span class="n">con</span><span class="o">=</span><span class="n">engine</span><span class="p">,</span> <span class="n">if_exists</span><span class="o">=</span><span class="s1">&#39;replace&#39;</span><span class="p">)</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;returning train nonsparse matrix...&#39;</span><span class="p">)</span>
+        <span class="n">train_averages</span> <span class="o">=</span> <span class="n">clustering_df_tmp</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;day_of_week&#39;</span><span class="p">,</span> <span class="s1">&#39;time_idx&#39;</span><span class="p">])[[</span><span class="s1">&#39;level_min&#39;</span><span class="p">,</span> <span class="s1">&#39;level_max&#39;</span><span class="p">,</span> <span class="s1">&#39;level_mean&#39;</span><span class="p">,</span> <span class="s1">&#39;level_count&#39;</span><span class="p">,</span><span class="s1">&#39;level_binary&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+        <span class="n">train_averages</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;day_of_week&#39;</span><span class="p">,</span> <span class="s1">&#39;time_idx&#39;</span><span class="p">,</span> <span class="s1">&#39;ave_level_min&#39;</span><span class="p">,</span> <span class="s1">&#39;ave_level_max&#39;</span><span class="p">,</span> <span class="s1">&#39;ave_level_mean&#39;</span><span class="p">,</span> <span class="s1">&#39;ave_level_count&#39;</span><span class="p">,</span> <span class="s1">&#39;ave_level_binary&#39;</span><span class="p">]</span>
+        <span class="n">nonsparse_matrix</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">clustering_df_tmp</span><span class="p">,</span> <span class="n">train_averages</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;day_of_week&#39;</span><span class="p">,</span> <span class="s1">&#39;time_idx&#39;</span><span class="p">])</span>
+        <span class="n">segtimes_df</span> <span class="o">=</span> <span class="n">nonsparse_matrix</span><span class="p">[[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;date&#39;</span><span class="p">,</span> <span class="s1">&#39;time&#39;</span><span class="p">]]</span>
+        <span class="n">nonsparse_matrix_final</span> <span class="o">=</span> <span class="n">nonsparse_matrix</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;date&#39;</span><span class="p">,</span><span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="s1">&#39;level_min&#39;</span><span class="p">,</span> <span class="s1">&#39;level_max&#39;</span><span class="p">,</span> <span class="s1">&#39;level_mean&#39;</span><span class="p">,</span> <span class="s1">&#39;level_count&#39;</span><span class="p">,</span> <span class="s1">&#39;level_binary&#39;</span><span class="p">])</span>
+        
+        <span class="k">return</span> <span class="p">(</span><span class="n">segtimes_df</span><span class="p">,</span> <span class="n">nonsparse_matrix_final</span><span class="p">)</span>      </div>
+        
+    
+<div class="viewcode-block" id="Cluster.train_clustermodel_sparse"><a class="viewcode-back" href="../Cluster.html#Cluster.Cluster.train_clustermodel_sparse">[docs]</a>    <span class="k">def</span> <span class="nf">train_clustermodel_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Create clustering model from the sparse matrix dataframe.</span>
+
+<span class="sd">        Creates the clustering model with the current clustering algorithm from either the raw or PCA transformed</span>
+<span class="sd">        data as created by self.create_sparse_matrix. It also saves the model in a pickle file for future use.</span>
+
+<span class="sd">        :return: Clustering model and a dataframe of the sparse matrix with each row&#39;s assigned cluster.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Clustering using: &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">algorithm</span><span class="p">)</span>
+        <span class="n">uniquesegments_df</span><span class="p">,</span> <span class="n">sparse_matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_sparse_matrix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="n">clusterer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clustering_algorithms</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">algorithm</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clustering_model</span> <span class="o">=</span> <span class="n">clusterer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">sparse_matrix</span><span class="p">)</span>
+        
+        <span class="n">clusters_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clustering_model</span><span class="o">.</span><span class="n">labels_</span><span class="p">,</span> <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;cluster_sparse&#39;</span><span class="p">])</span>
+        <span class="n">clusters_df</span><span class="p">[</span><span class="s1">&#39;segmentskey&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">clusters_df</span><span class="o">.</span><span class="n">index</span>
+        <span class="n">clusters_df</span> <span class="o">=</span> <span class="n">clusters_df</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clusters_df_final</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">uniquesegments_df</span><span class="p">,</span> <span class="n">clusters_df</span><span class="p">,</span>  <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;segmentskey&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clusters_df_final</span><span class="p">[</span><span class="s1">&#39;cluster_sparse&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
+        
+        <span class="n">today</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">algorithm</span> <span class="o">+</span> <span class="s1">&#39;_sparse_cluster_model_&#39;</span> <span class="o">+</span> <span class="n">today</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;.pkl&#39;</span>
+        <span class="n">joblib</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clustering_model</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Stored &#39;</span> <span class="o">+</span> <span class="n">filename</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">clustering_model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">clusters_df_final</span><span class="p">[[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span><span class="s1">&#39;cluster_sparse&#39;</span><span class="p">]]</span></div>
+    
+    
+<div class="viewcode-block" id="Cluster.train_clustermodel_sparse_long"><a class="viewcode-back" href="../Cluster.html#Cluster.Cluster.train_clustermodel_sparse_long">[docs]</a>    <span class="k">def</span> <span class="nf">train_clustermodel_sparse_long</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Create clustering model from the long format sparse matrix dataframe.</span>
+
+<span class="sd">        This function creates the clustering model with the current clustering algorithm</span>
+<span class="sd">        from either the raw or PCA transformed data as created by self.create_sparse_matrix_long.</span>
+<span class="sd">        It also saves the model in a pickle file for future use.</span>
+
+<span class="sd">        :return: Clustering model and a dataframe of the long format sparse matrix with each row&#39;s assigned cluster.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Clustering using: &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">algorithm</span><span class="p">)</span>
+        <span class="n">uniquesegments_df</span><span class="p">,</span> <span class="n">sparse_matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_sparse_matrix_long</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="n">clusterer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clustering_algorithms</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">algorithm</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clustering_model</span> <span class="o">=</span> <span class="n">clusterer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">sparse_matrix</span><span class="p">)</span>
+        
+        <span class="n">clusters_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clustering_model</span><span class="o">.</span><span class="n">labels_</span><span class="p">,</span> <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;cluster_sparse_long&#39;</span><span class="p">])</span>
+        <span class="n">clusters_df</span><span class="p">[</span><span class="s1">&#39;segmentskey&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">clusters_df</span><span class="o">.</span><span class="n">index</span>
+        <span class="n">clusters_df</span> <span class="o">=</span> <span class="n">clusters_df</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clusters_df_final</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">uniquesegments_df</span><span class="p">,</span> <span class="n">clusters_df</span><span class="p">,</span>  <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;segmentskey&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clusters_df_final</span><span class="p">[</span><span class="s1">&#39;cluster_sparse_long&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
+        
+        <span class="n">today</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">algorithm</span> <span class="o">+</span> <span class="s1">&#39;_sparse_long_cluster_model_&#39;</span> <span class="o">+</span> <span class="n">today</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;.pkl&#39;</span>
+        <span class="n">joblib</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clustering_model</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Stored &#39;</span> <span class="o">+</span> <span class="n">filename</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">clustering_model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">clusters_df_final</span><span class="p">[[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span><span class="s1">&#39;cluster_sparse_long&#39;</span><span class="p">]]</span></div>
+        
+    
+<div class="viewcode-block" id="Cluster.train_clustermodel_nonsparse"><a class="viewcode-back" href="../Cluster.html#Cluster.Cluster.train_clustermodel_nonsparse">[docs]</a>    <span class="k">def</span> <span class="nf">train_clustermodel_nonsparse</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> 
+        <span class="sd">&quot;&quot;&quot; Create clustering model from the non-sparse matrix dataframe.</span>
+
+<span class="sd">        This function creates the clustering model with the current clustering algorithm</span>
+<span class="sd">        from either the raw or PCA transformed data as created by self.create_nonsparse_matrix.</span>
+<span class="sd">        It also saves the model in a pickle file for future use.</span>
+
+<span class="sd">        :return: Clustering model and a dataframe of the non-sparse matrix with each row&#39;s assigned cluster.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+               
+        <span class="n">segtimes_df</span><span class="p">,</span> <span class="n">nonsparse_matrix</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">create_nonsparse_matrix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">segtimes_df</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">segtimes_df</span><span class="o">.</span><span class="n">index</span>
+        <span class="n">nonsparse_matrix</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">nonsparse_matrix</span><span class="o">.</span><span class="n">index</span>
+        <span class="n">data_to_scale</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">segtimes_df</span><span class="p">,</span> <span class="n">nonsparse_matrix</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">])</span>
+        <span class="n">data_scaled</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale_matrix</span><span class="p">(</span><span class="n">data_to_scale</span><span class="p">)</span>
+        <span class="n">data_to_cluster</span> <span class="o">=</span> <span class="n">data_scaled</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span><span class="s1">&#39;level_0&#39;</span><span class="p">,</span><span class="s1">&#39;date&#39;</span><span class="p">,</span><span class="s1">&#39;time&#39;</span><span class="p">])</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Clustering using nonsparse segment/time matrix and: &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">algorithm</span><span class="p">)</span>
+        <span class="n">clusterer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clustering_algorithms</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">algorithm</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clustering_model</span> <span class="o">=</span> <span class="n">clusterer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">data_to_cluster</span><span class="p">)</span>
+        
+        <span class="n">clusters_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clustering_model</span><span class="o">.</span><span class="n">labels_</span><span class="p">,</span> <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;cluster_nonsparse&#39;</span><span class="p">])</span>
+        <span class="n">clusters_df</span><span class="p">[</span><span class="s1">&#39;segtimekey&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">clusters_df</span><span class="o">.</span><span class="n">index</span>
+        <span class="n">segtimes_df</span><span class="p">[</span><span class="s1">&#39;segtimekey&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">segtimes_df</span><span class="o">.</span><span class="n">index</span>
+        <span class="n">clusters_df</span> <span class="o">=</span> <span class="n">clusters_df</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clusters_df_final</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">segtimes_df</span><span class="p">,</span> <span class="n">clusters_df</span><span class="p">,</span>  <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;segtimekey&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clusters_df_final</span><span class="p">[</span><span class="s1">&#39;cluster_nonsparse&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
+        
+        <span class="n">today</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">algorithm</span> <span class="o">+</span> <span class="s1">&#39;_nonsparse_cluster_model_&#39;</span> <span class="o">+</span> <span class="n">today</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;.pkl&#39;</span>
+        <span class="n">joblib</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clustering_model</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Stored &#39;</span> <span class="o">+</span> <span class="n">filename</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">clustering_model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">clusters_df_final</span><span class="p">[[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span><span class="s1">&#39;date&#39;</span><span class="p">,</span><span class="s1">&#39;time&#39;</span><span class="p">,</span><span class="s1">&#39;cluster_nonsparse&#39;</span><span class="p">]]</span>    </div>
+                                         
+<div class="viewcode-block" id="Cluster.test_assign_clusters_sparse"><a class="viewcode-back" href="../Cluster.html#Cluster.Cluster.test_assign_clusters_sparse">[docs]</a>    <span class="k">def</span> <span class="nf">test_assign_clusters_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_data</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Assign clusters to a new sparse matrix dataframe.</span>
+
+<span class="sd">        This function assigns clusters to the provided sparse matrix using the current clustering model</span>
+<span class="sd">        and returns the sparse matrix with the assigned clusters.</span>
+<span class="sd">        It reads the feature array for segments from database table clust_sparse_avebysegment_[split_type] (segment averages)</span>
+<span class="sd">        if the segment exists or from clust_sparse_avebyrt_[split_type] (road type averages) if segment is new.</span>
+<span class="sd">        It then loads the cluster model from the pickle file amd assigns clusters to the provided data.</span>
+
+<span class="sd">        :param new_data: New data in sparse matrix format to assign clusters to.</span>
+<span class="sd">        :param filename: Filename of saved clustiern model pickle file.</span>
+
+<span class="sd">        :return: dataframe of the sparse matrix with each row&#39;s assigned cluster.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">sqlalchemy_conn_str</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;../conf/sqlalchemy_conn_str.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="n">engine</span> <span class="o">=</span> <span class="n">create_engine</span><span class="p">(</span><span class="n">sqlalchemy_conn_str</span><span class="p">)</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;creating test sparse matrix...&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_type</span> <span class="o">==</span> <span class="s1">&#39;random&#39;</span><span class="p">:</span>
+            <span class="n">averages_seg</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="s1">&#39;SELECT * FROM clust_sparse_avebysegment_random&#39;</span><span class="p">,</span><span class="n">con</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
+            <span class="n">averages_rt</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="s1">&#39;SELECT * FROM clust_sparse_avebyrt_random&#39;</span><span class="p">,</span><span class="n">con</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_type</span> <span class="o">==</span> <span class="s1">&#39;date&#39;</span><span class="p">:</span>
+            <span class="n">averages_seg</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="s1">&#39;SELECT * FROM clust_sparse_avebysegment_date&#39;</span><span class="p">,</span><span class="n">con</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
+            <span class="n">averages_rt</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="s1">&#39;SELECT * FROM clust_sparse_avebyrt_date&#39;</span><span class="p">,</span><span class="n">con</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
+
+        <span class="n">averages_seg</span><span class="p">[</span><span class="s1">&#39;exists&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">test_data_exists</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">new_data</span><span class="p">,</span> <span class="n">averages_seg</span><span class="p">[[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;exists&#39;</span><span class="p">]],</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">])</span>
+        <span class="n">test_exists</span> <span class="o">=</span> <span class="n">test_data_exists</span><span class="p">[</span><span class="n">test_data_exists</span><span class="p">[</span><span class="s1">&#39;exists&#39;</span><span class="p">]</span><span class="o">==</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">test_notexists</span> <span class="o">=</span> <span class="n">test_data_exists</span><span class="p">[</span><span class="n">test_data_exists</span><span class="p">[</span><span class="s1">&#39;exists&#39;</span><span class="p">]</span><span class="o">!=</span><span class="mi">1</span><span class="p">]</span>  
+        
+        <span class="n">test_matrix_exists</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">test_exists</span><span class="p">[[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;road_type&#39;</span><span class="p">]],</span> <span class="n">averages_seg</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">])</span>
+        <span class="n">test_matrix_notexists</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">test_notexists</span><span class="p">[[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;road_type&#39;</span><span class="p">]],</span> <span class="n">averages_rt</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;road_type&#39;</span><span class="p">])</span>
+        <span class="n">test_matrix</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">test_matrix_exists</span><span class="p">,</span> <span class="n">test_matrix_notexists</span><span class="p">])</span>
+        <span class="n">test_matrix</span> <span class="o">=</span> <span class="n">test_matrix</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>        
+        
+        <span class="n">test_sparse_matrix</span> <span class="o">=</span> <span class="n">test_matrix</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;road_type&#39;</span><span class="p">,</span> <span class="s1">&#39;exists&#39;</span><span class="p">,</span> <span class="s1">&#39;index&#39;</span><span class="p">,</span> <span class="s1">&#39;roadtypekey&#39;</span><span class="p">,</span> <span class="s1">&#39;segmentskey&#39;</span><span class="p">])</span>
+        <span class="n">num</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">averages_seg</span><span class="p">))</span><span class="o">-</span><span class="mi">4</span><span class="p">))</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">num</span><span class="p">]</span>
+        <span class="n">test_sparse_matrix</span> <span class="o">=</span> <span class="n">test_sparse_matrix</span><span class="p">[</span><span class="n">columns</span><span class="p">]</span> 
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;clustering new data...&#39;</span><span class="p">)</span>
+        <span class="n">cluster_model</span> <span class="o">=</span> <span class="n">joblib</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="n">cluster_predictions</span> <span class="o">=</span> <span class="n">cluster_model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_sparse_matrix</span><span class="p">)</span>
+        
+        <span class="n">clusterdf</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">cluster_predictions</span><span class="p">,</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;cluster_sparse&#39;</span><span class="p">])</span>
+        <span class="n">clusterdf</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">clusterdf</span><span class="o">.</span><span class="n">index</span>
+        <span class="n">segmentdf</span> <span class="o">=</span> <span class="n">test_matrix</span><span class="p">[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_frame</span><span class="p">()</span>
+        <span class="n">segmentdf</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">segmentdf</span><span class="o">.</span><span class="n">index</span>
+        <span class="n">test_cluster_df_sparse</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">clusterdf</span><span class="p">,</span> <span class="n">segmentdf</span><span class="p">,</span>  <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">])</span>
+        <span class="n">test_cluster_df_sparse</span> <span class="o">=</span> <span class="n">test_cluster_df_sparse</span><span class="p">[[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span><span class="s1">&#39;cluster_sparse&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span><span class="s1">&#39;cluster_sparse&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
+        
+        <span class="k">return</span> <span class="n">test_cluster_df_sparse</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span></div>
+    
+<div class="viewcode-block" id="Cluster.test_assign_clusters_sparse_long"><a class="viewcode-back" href="../Cluster.html#Cluster.Cluster.test_assign_clusters_sparse_long">[docs]</a>    <span class="k">def</span> <span class="nf">test_assign_clusters_sparse_long</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_data</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Assign clusters to a new long format sparse matrix dataframe.</span>
+
+<span class="sd">        This function assigns clusters to the provided long format sparse matrix using the current clustering model</span>
+<span class="sd">        and returns the long format sparse matrix with the assigned clusters.</span>
+<span class="sd">        It reads the feature array for segments from database table clust_sparse_long_avebysegment_[split_type]</span>
+<span class="sd">        (segment averages) if the segment exists or from clust_sparse_long_avebyrt_[split_type] (road type averages)</span>
+<span class="sd">        if segment is new. It then loads the cluster model from the pickle file amd assigns clusters to the provided data.</span>
+
+<span class="sd">        :param new_data: New data in long format sparse matrix format to assign clusters to.</span>
+<span class="sd">        :param filename: Filename of saved clustiern model pickle file.</span>
+
+<span class="sd">        :return: dataframe of the long format sparse matrix with each row&#39;s assigned cluster.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">sqlalchemy_conn_str</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;../conf/sqlalchemy_conn_str.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="n">engine</span> <span class="o">=</span> <span class="n">create_engine</span><span class="p">(</span><span class="n">sqlalchemy_conn_str</span><span class="p">)</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;creating test sparse matrix...&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_type</span> <span class="o">==</span> <span class="s1">&#39;random&#39;</span><span class="p">:</span>
+            <span class="n">averages_seg</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="s1">&#39;SELECT * FROM clust_sparse_long_avebysegment_random&#39;</span><span class="p">,</span><span class="n">con</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_type</span> <span class="o">==</span> <span class="s1">&#39;date&#39;</span><span class="p">:</span>
+            <span class="n">averages_seg</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="s1">&#39;SELECT * FROM clust_sparse_long_avebysegment_date&#39;</span><span class="p">,</span><span class="n">con</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
+      
+        <span class="n">test_matrix</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">new_data</span><span class="p">[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_frame</span><span class="p">(),</span> <span class="n">averages_seg</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">])</span>
+        <span class="n">test_sparse_matrix</span> <span class="o">=</span> <span class="n">test_matrix</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span><span class="s1">&#39;segmentskey&#39;</span><span class="p">,</span><span class="s1">&#39;index&#39;</span><span class="p">])</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;clustering new data...&#39;</span><span class="p">)</span>
+        <span class="n">cluster_model</span> <span class="o">=</span> <span class="n">joblib</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="n">cluster_predictions</span> <span class="o">=</span> <span class="n">cluster_model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_sparse_matrix</span><span class="p">)</span>
+        
+        <span class="n">clusterdf</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">cluster_predictions</span><span class="p">,</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;cluster_sparse_long&#39;</span><span class="p">])</span>
+        <span class="n">clusterdf</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">clusterdf</span><span class="o">.</span><span class="n">index</span>
+        <span class="n">segmentdf</span> <span class="o">=</span> <span class="n">test_matrix</span><span class="p">[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_frame</span><span class="p">()</span>
+        <span class="n">segmentdf</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">segmentdf</span><span class="o">.</span><span class="n">index</span>
+        <span class="n">test_cluster_df_sparse</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">clusterdf</span><span class="p">,</span> <span class="n">segmentdf</span><span class="p">,</span>  <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">])</span>
+        <span class="n">test_cluster_df_sparse</span> <span class="o">=</span> <span class="n">test_cluster_df_sparse</span><span class="p">[[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;cluster_sparse_long&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;cluster_sparse_long&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
+        
+        <span class="k">return</span> <span class="n">test_cluster_df_sparse</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Cluster.test_assign_clusters_nonsparse"><a class="viewcode-back" href="../Cluster.html#Cluster.Cluster.test_assign_clusters_nonsparse">[docs]</a>    <span class="k">def</span> <span class="nf">test_assign_clusters_nonsparse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_data</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Assign clusters to a new non-sparse matrix dataframe.</span>
+
+<span class="sd">        This function assigns clusters to the provided non-sparse matrix using the current clustering model</span>
+<span class="sd">        and returns the non-sparse matrix with the assigned clusters.</span>
+<span class="sd">        It reads the feature array for segments from database table clust_nonsparse_avebysegment_[split_type] (segment averages)</span>
+<span class="sd">        if the segment exists or from clust_nonsparse_avebyrt_[split_type] (road type averages) if segment is new.</span>
+<span class="sd">        It then loads the cluster model from the pickle file amd assigns clusters to the provided data.</span>
+
+<span class="sd">        :param new_data: New data in non-sparse matrix format to assign clusters to.</span>
+<span class="sd">        :param filename: Filename of saved clustiern model pickle file.</span>
+
+<span class="sd">        :return: dataframe of the non-sparse matrix with each row&#39;s assigned cluster.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">sqlalchemy_conn_str</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;../conf/sqlalchemy_conn_str.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="n">engine</span> <span class="o">=</span> <span class="n">create_engine</span><span class="p">(</span><span class="n">sqlalchemy_conn_str</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_type</span> <span class="o">==</span> <span class="s1">&#39;random&#39;</span><span class="p">:</span>
+            <span class="n">averages_seg</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="s1">&#39;SELECT * FROM clust_nonsparse_avebysegment_random&#39;</span><span class="p">,</span><span class="n">con</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
+            <span class="n">averages_rt</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="s1">&#39;SELECT * FROM clust_nonsparse_avebyrt_random&#39;</span><span class="p">,</span><span class="n">con</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_type</span> <span class="o">==</span> <span class="s1">&#39;date&#39;</span><span class="p">:</span>
+            <span class="n">averages_seg</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="s1">&#39;SELECT * FROM clust_nonsparse_avebysegment_date&#39;</span><span class="p">,</span><span class="n">con</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
+            <span class="n">averages_rt</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="s1">&#39;SELECT * FROM clust_nonsparse_avebyrt_date&#39;</span><span class="p">,</span><span class="n">con</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
+        
+        <span class="n">averages_seg</span><span class="p">[</span><span class="s1">&#39;exists&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">test_data_exists</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">new_data</span><span class="p">,</span> <span class="n">averages_seg</span><span class="p">[[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;day_of_week&#39;</span><span class="p">,</span> <span class="s1">&#39;time_idx&#39;</span><span class="p">,</span> <span class="s1">&#39;exists&#39;</span><span class="p">]],</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;day_of_week&#39;</span><span class="p">,</span> <span class="s1">&#39;time_idx&#39;</span><span class="p">])</span>
+        <span class="n">test_exists</span> <span class="o">=</span> <span class="n">test_data_exists</span><span class="p">[</span><span class="n">test_data_exists</span><span class="p">[</span><span class="s1">&#39;exists&#39;</span><span class="p">]</span><span class="o">==</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">test_notexists</span> <span class="o">=</span> <span class="n">test_data_exists</span><span class="p">[</span><span class="n">test_data_exists</span><span class="p">[</span><span class="s1">&#39;exists&#39;</span><span class="p">]</span><span class="o">!=</span><span class="mi">1</span><span class="p">]</span>
+        
+        <span class="n">test_exists_tmp</span> <span class="o">=</span> <span class="n">test_exists</span><span class="p">[[</span><span class="s1">&#39;date&#39;</span><span class="p">,</span><span class="s1">&#39;time&#39;</span><span class="p">,</span><span class="s1">&#39;date_idx&#39;</span><span class="p">,</span> <span class="s1">&#39;time_idx&#39;</span><span class="p">,</span> <span class="s1">&#39;day_of_week&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;road_type&#39;</span><span class="p">,</span> <span class="s1">&#39;lat1&#39;</span><span class="p">,</span> <span class="s1">&#39;lat2&#39;</span><span class="p">,</span> <span class="s1">&#39;lon1&#39;</span><span class="p">,</span> <span class="s1">&#39;lon2&#39;</span><span class="p">]]</span>
+        <span class="n">test_notexists_tmp</span> <span class="o">=</span> <span class="n">test_notexists</span><span class="p">[[</span><span class="s1">&#39;date&#39;</span><span class="p">,</span><span class="s1">&#39;time&#39;</span><span class="p">,</span><span class="s1">&#39;date_idx&#39;</span><span class="p">,</span> <span class="s1">&#39;time_idx&#39;</span><span class="p">,</span> <span class="s1">&#39;day_of_week&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;road_type&#39;</span><span class="p">,</span> <span class="s1">&#39;lat1&#39;</span><span class="p">,</span> <span class="s1">&#39;lat2&#39;</span><span class="p">,</span> <span class="s1">&#39;lon1&#39;</span><span class="p">,</span> <span class="s1">&#39;lon2&#39;</span><span class="p">]]</span>
+        <span class="n">test_matrix_exists</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">test_exists_tmp</span><span class="p">,</span> <span class="n">averages_seg</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;day_of_week&#39;</span><span class="p">,</span> <span class="s1">&#39;time_idx&#39;</span><span class="p">])</span>
+        <span class="n">test_matrix_notexists</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">test_notexists_tmp</span><span class="p">,</span> <span class="n">averages_rt</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;road_type&#39;</span><span class="p">,</span> <span class="s1">&#39;day_of_week&#39;</span><span class="p">,</span> <span class="s1">&#39;time_idx&#39;</span><span class="p">])</span>
+        <span class="n">test_matrix</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">test_matrix_exists</span><span class="p">,</span> <span class="n">test_matrix_notexists</span><span class="p">])</span>
+        <span class="n">test_matrix</span> <span class="o">=</span> <span class="n">test_matrix</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        
+        <span class="n">test_nonsparse_matrix</span> <span class="o">=</span> <span class="n">test_matrix</span><span class="p">[[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span><span class="s1">&#39;date&#39;</span><span class="p">,</span><span class="s1">&#39;time&#39;</span><span class="p">,</span><span class="s1">&#39;date_idx&#39;</span><span class="p">,</span> <span class="s1">&#39;time_idx&#39;</span><span class="p">,</span> <span class="s1">&#39;day_of_week&#39;</span><span class="p">,</span> <span class="s1">&#39;road_type&#39;</span><span class="p">,</span> <span class="s1">&#39;lat1&#39;</span><span class="p">,</span> <span class="s1">&#39;lat2&#39;</span><span class="p">,</span> <span class="s1">&#39;lon1&#39;</span><span class="p">,</span> <span class="s1">&#39;lon2&#39;</span><span class="p">,</span> <span class="s1">&#39;level_binary&#39;</span><span class="p">,</span> <span class="s1">&#39;level_min&#39;</span><span class="p">,</span> <span class="s1">&#39;level_max&#39;</span><span class="p">,</span> <span class="s1">&#39;level_mean&#39;</span><span class="p">,</span> <span class="s1">&#39;level_count&#39;</span><span class="p">]]</span>
+        <span class="n">test_nonsparse_matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale_matrix</span><span class="p">(</span><span class="n">test_nonsparse_matrix</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;clustering new data...&#39;</span><span class="p">)</span>
+        <span class="n">cluster_model</span> <span class="o">=</span> <span class="n">joblib</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="n">cluster_predictions</span> <span class="o">=</span> <span class="n">cluster_model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_nonsparse_matrix</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span><span class="s1">&#39;date&#39;</span><span class="p">,</span><span class="s1">&#39;time&#39;</span><span class="p">]))</span>
+        
+        <span class="n">clusterdf</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">cluster_predictions</span><span class="p">,</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;cluster_nonsparse&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+        <span class="n">keydf</span> <span class="o">=</span> <span class="n">test_matrix</span><span class="p">[[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span><span class="s1">&#39;date&#39;</span><span class="p">,</span><span class="s1">&#39;time&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+        <span class="n">test_cluster_df_sparse</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">clusterdf</span><span class="p">,</span> <span class="n">keydf</span><span class="p">,</span>  <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">])</span>
+        
+        <span class="k">return</span> <span class="n">test_cluster_df_sparse</span><span class="p">[[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">,</span><span class="s1">&#39;date&#39;</span><span class="p">,</span><span class="s1">&#39;time&#39;</span><span class="p">,</span><span class="s1">&#39;cluster_nonsparse&#39;</span><span class="p">]]</span>    </div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">DSE_capstone 0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Ken Kroel.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.2.
+    </div>
+  </body>
+</html>

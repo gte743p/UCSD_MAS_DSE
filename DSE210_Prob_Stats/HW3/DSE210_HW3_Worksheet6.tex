@@ -1,0 +1,362 @@
+\documentclass{article}
+
+\usepackage{fancyhdr}
+\usepackage{extramarks}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{tikz}
+\usepackage[plain]{algorithm}
+\usepackage{algpseudocode}
+\usepackage{enumitem}
+\usepackage{mathtools}
+\usepackage{amssymb}
+\usetikzlibrary{automata,positioning}
+\usepackage{pgfplots}
+
+%
+% Basic Document Settings
+%
+
+\topmargin=-0.45in
+\evensidemargin=0in
+\oddsidemargin=0in
+\textwidth=6.5in
+\textheight=9.0in
+\headsep=0.25in
+
+\linespread{1.1}
+
+\pagestyle{fancy}
+\lhead{\hmwkClass\ \hmwkTitle}
+\rhead{\hmwkAuthorName}
+\lfoot{\lastxmark}
+\cfoot{\thepage}
+
+\renewcommand\headrulewidth{0.4pt}
+\renewcommand\footrulewidth{0.4pt}
+
+\setlength\parindent{0pt}
+
+%
+% Added stuff
+%
+
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}
+\setenumerate[0]{label={(\alph*)}}
+
+\pgfplotsset{my style/.append style={axis x line=middle, axis y line=
+           middle, xlabel={$x$}, ylabel={$y$}, axis equal }}
+
+%
+% Create Problem Sections
+%
+
+\newcommand{\enterProblemHeader}[1]{
+    \nobreak\extramarks{}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
+    \nobreak\extramarks{Problem \arabic{#1} (continued)}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
+}
+
+\newcommand{\exitProblemHeader}[1]{
+    \nobreak\extramarks{Problem \arabic{#1} (continued)}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
+    \stepcounter{#1}
+    \nobreak\extramarks{Problem \arabic{#1}}{}\nobreak{}
+}
+
+\setcounter{secnumdepth}{0}
+\newcounter{partCounter}
+\newcounter{homeworkProblemCounter}
+\setcounter{homeworkProblemCounter}{1}
+\nobreak\extramarks{Problem \arabic{homeworkProblemCounter}}{}\nobreak{}
+
+%
+% Homework Problem Environment
+%
+% This environment takes an optional argument. When given, it will adjust the
+% problem counter. This is useful for when the problems given for your
+% assignment aren't sequential. See the last 3 problems of this template for an
+% example.
+%
+\newenvironment{homeworkProblem}[1][-1]{
+    \ifnum#1>0
+        \setcounter{homeworkProblemCounter}{#1}
+    \fi
+    \section{Problem \arabic{homeworkProblemCounter}}
+    \setcounter{partCounter}{1}
+    \enterProblemHeader{homeworkProblemCounter}
+}{
+    \exitProblemHeader{homeworkProblemCounter}
+}
+
+%
+% Homework Details
+%   - Title
+%   - Due date
+%   - Class
+%   - Section/Time
+%   - Instructor
+%   - Author
+%
+
+\newcommand{\hmwkTitle}{Worksheet\ \#6 - Generative Models 2}
+\newcommand{\hmwkDueDate}{February 17, 2017}
+\newcommand{\hmwkClass}{DSE 210}
+\newcommand{\hmwkClassTime}{}
+\newcommand{\hmwkClassInstructor}{Professor: A. Enis \c{C}etin}
+\newcommand{\hmwkClassTA}{Teaching Assistant: Shivani Agrawal}
+\newcommand{\hmwkAuthorName}{\textbf{Joshua Wilson} \and \textbf{A53228518}}
+
+%
+% Title Page
+%
+
+\title{
+    \vspace{2in}
+    \textmd{\textbf{\hmwkClass:\ \hmwkTitle}}\\
+    \vspace{0.1in}\large{\textit{\hmwkClassInstructor}}\\
+    \vspace{0.1in}\large{\textit{\hmwkClassTA}}
+    \vspace{3in}
+}
+
+\author{\hmwkAuthorName}
+\date{}
+
+\renewcommand{\part}[1]{\textbf{\large Part \Alph{partCounter}}\stepcounter{partCounter}\\}
+
+%
+% Various Helper Commands
+%
+
+% Useful for algorithms
+\newcommand{\alg}[1]{\textsc{\bfseries \footnotesize #1}}
+
+% For derivatives
+\newcommand{\deriv}[1]{\frac{\mathrm{d}}{\mathrm{d}x} (#1)}
+
+% For partial derivatives
+\newcommand{\pderiv}[2]{\frac{\partial}{\partial #1} (#2)}
+
+% Integral dx
+\newcommand{\dx}{\mathrm{d}x}
+
+% Alias for the Solution section header
+\newcommand{\solution}{\textbf{\large Solution}}
+
+% Probability commands
+\newcommand{\E}{\mathrm{E}}
+\newcommand{\Var}{\mathrm{Var}}
+\newcommand{\Cov}{\mathrm{Cov}}
+\newcommand{\Bias}{\mathrm{Bias}}
+\newcommand*{\Perm}[2]{{}_{#1}\!P_{#2}}%
+\newcommand*{\Comb}[2]{{}_{#1}C_{#2}}%
+\newcommand\given[1][]{\:#1\vert\:}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\begin{document}
+
+\maketitle
+
+\pagebreak
+
+\begin{homeworkProblem}
+Given:
+\begin{equation*}
+\begin{aligned}[c]
+\pi(\text{happy}) = \textstyle\frac{3}{4}\\
+p(\text{talks a lot} \given \text{happy}) = \textstyle\frac{2}{3}\\
+p(\text{talks a little}\given \text{happy}) = \textstyle\frac{1}{6}\\
+p(\text{silent} \given \text{happy}) = \textstyle\frac{1}{6}
+\end{aligned}
+\begin{aligned}[c]
+ \qquad \qquad \qquad\\
+ \qquad \qquad \qquad\\
+ \qquad \qquad \qquad\\
+ \qquad \qquad \qquad
+\end{aligned}
+\begin{aligned}[c]
+\pi(\text{sad}) = \textstyle\frac{1}{4}\\
+p(\text{talks a lot} \given \text{sad}) = \textstyle\frac{1}{6}\\
+p(\text{talks a little}\given \text{sad}) = \textstyle\frac{1}{6}\\
+p(\text{silent} \given \text{sad}) = \textstyle\frac{2}{3}
+\end{aligned}
+\end{equation*}
+
+\begin{enumerate}
+\item
+To calculate the most likely mood, we determine the probabilities of each mood given the fact that he is only talking a little: \\ \\
+$\begin{aligned}
+p(\text{happy} \given \text{talks a little}) & = \cfrac{p(\text{talks a little} \given \text{happy}) \times p(\text{happy})}{p(\text{talks a little})} \\
+	& = \cfrac{p(\text{talks a little} \given \text{happy}) \times p(\text{happy})}{p(\text{talks a little} \given \text{happy}) \times p(\text{happy}) 
+	+ p(\text{talks a little} \given \text{sad}) \times p(\text{sad})} \\
+	& = \cfrac{\frac{1}{6} \times \frac{3}{4}}{\frac{1}{6} \times \frac{3}{4} + \frac{1}{6} \times \frac{1}{4}} 
+	= \cfrac{\frac{3}{24}}{\frac{3}{24} + \frac{1}{24}}
+	= \cfrac{\frac{3}{24}}{\frac{4}{24}}
+	= \cfrac{3}{4} \\ \\
+p(\text{sad} \given \text{talks a little}) & = \cfrac{p(\text{talks a little} \given \text{sad}) \times p(\text{sad})}{p(\text{talks a little})} \\
+	& = \cfrac{p(\text{talks a little} \given \text{sad}) \times p(\text{sad})}{p(\text{talks a little} \given \text{sad}) \times p(\text{sad}) 
+	+ p(\text{talks a little} \given \text{sad}) \times p(\text{sad})} \\
+	& = \cfrac{\frac{1}{6} \times \frac{1}{4}}{\frac{1}{6} \times \frac{1}{4} + \frac{1}{6} \times \frac{3}{4}} 
+	= \cfrac{\frac{1}{24}}{\frac{1}{24} + \frac{3}{24}}
+	= \cfrac{\frac{1}{24}}{\frac{4}{24}}
+	= \cfrac{1}{4}
+\end{aligned}$ \\ \\ 
+Since $p(\text{happy} \given \text{talks a little}) > p(\text{sad} \given \text{talks a little})$, the most likely mood is $\boxed{\text{happy}}$ \\
+
+\item
+The probability of the prediction in 1(a) being incorrect is equal to $p(\text{sad} \given \text{talks a little})$, which was calculated above and is equal to $\boxed{\cfrac{1}{4}}$
+\end{enumerate}
+\end{homeworkProblem}
+
+\begin{homeworkProblem}
+To find the optimal classifier $h^{\ast}$, we need to find $h^{\ast}(x) = \argmax _j \pi _j P_j(x)$. \\
+\begin{equation*}
+\begin{aligned}
+\pi _1 P_1(x) & = \begin{cases}
+    \frac{1}{3} \times \frac{7}{8} = \frac{7}{24}, & \text{if } -1 \leq x < 0 \\
+    \frac{1}{3} \times \frac{1}{8} = \frac{1}{24}, & \text{if } \ \ \ \ 0 \leq x \leq 1
+  \end{cases}, \\
+\pi _2 P_2(x) & = \begin{cases}
+    \frac{1}{6} \times 0 = 0, & \text{if } -1 \leq x < 0 \\
+    \frac{1}{6} \times 1 = \frac{1}{6}, & \text{if } \ \ \ \ 0 \leq x \leq 1
+  \end{cases}, \\
+\pi _3 P_3(x) & = \begin{cases}
+    \frac{1}{2} \times \frac{1}{2} = \frac{1}{4}, & \text{if } -1 \leq x < 0 \\
+    \frac{1}{2} \times \frac{1}{2} = \frac{1}{4}, & \text{if } \ \ \ \ 0 \leq x \leq 1
+  \end{cases}, \\
+max\ \pi _j P_j(x) & = \begin{cases}
+    \pi _1 P_1(x) = \frac{1}{3} \times \frac{7}{8} = \frac{7}{24}, & \text{if } -1 \leq x < 0 \\
+    \pi _3 P_3(x) = \frac{1}{2} \times \frac{1}{2} = \frac{1}{4}, & \text{if } \ \ \ \ 0 \leq x \leq 1
+  \end{cases}, \\
+\therefore h^{\ast}(x) & = \begin{cases}
+    1, & \text{if } -1 \leq x < 0 \\
+    3, & \text{if } \ \ \ \ 0 \leq x \leq 1
+    \end{cases}
+\end{aligned}
+\end{equation*}
+
+\end{homeworkProblem}
+
+\begin{homeworkProblem}
+\begin{enumerate}
+\item
+positively correlated (although this probably varies by make, model, and type of vehicle; for example, some sports cars engineered to be very light would be expensive)
+\item
+positively correlated
+\item
+negatively correlated
+\end{enumerate}
+\end{homeworkProblem}
+
+\begin{homeworkProblem}
+The elements are perfectly correlated, i.e. correlation = $\boxed{1}$.
+\end{homeworkProblem}
+
+\newpage
+
+\begin{homeworkProblem}
+\begin{enumerate}
+\item
+$\mu_x = 2, \qquad \sigma_x = 1, \\
+\mu_y = 2, \qquad \sigma_y = 0.5, \\
+corr(x, y) = -0.5, \\ \\
+\text{Mean vector} \begin{bmatrix}\mu_x \\ \mu_y\end{bmatrix} = \begin{bmatrix} 2 \\ 2 \end{bmatrix}
+\text{, and covariance matrix } \Sigma = \begin{bmatrix}\Sigma_{xx} & \Sigma_{xy} \\ \Sigma_{yx} & \Sigma_{yy} \end{bmatrix}$, \\ \\
+where:
+\begin{equation*}
+\begin{aligned}
+\Sigma_{xx} & = var(x) = \sigma_x^2 = 1^2 = 1 \\
+\Sigma_{yy} & = var(y) = \sigma_y^2 = 0.5^2 = 0.25 \\
+\Sigma_{xy} & = \Sigma_{yx} = cov(x, y) = corr(x, y) \times \sigma_x \times \sigma_y = -0.5 \times 1 \times 0.5 = -0.25
+\end{aligned}
+\end{equation*}
+$\therefore \boxed{\mu = \begin{bmatrix} 2 \\ 2 \end{bmatrix} \text{ and } \Sigma = \begin{bmatrix} 1 & -0.25 \\ -0.25 & 0.25 \end{bmatrix}}$
+
+\item
+$\mu_x = 1, \qquad \sigma_x = 1, \\
+\mu_y = 1, \qquad \sigma_y = 1, \\
+corr(x, y) = 1, \\ \\
+\therefore \boxed{\mu = \begin{bmatrix} 1 \\ 1 \end{bmatrix} \text{ and } \Sigma = \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}}$
+\end{enumerate}
+\end{homeworkProblem}
+
+\newpage
+
+\begin{homeworkProblem}
+\begin{enumerate}
+\item
+$\mu = \begin{bmatrix} 0 \\ 0 \end{bmatrix}, \Sigma = \begin{bmatrix} 9 & 0 \\  0 & 1 \end{bmatrix}$, \\
+
+Gaussian contour sketch: \\
+
+\begin{tikzpicture}
+         \begin{axis}[my style, xtick={-9,-6,...,9}, ytick={-9,-6,...,9}, xmin=-10, xmax=10,  ymin=-10, ymax=10]
+	\end{axis}
+\end{tikzpicture} \\
+
+\item
+$\mu = \begin{bmatrix} 0 \\ 0 \end{bmatrix}, \Sigma = \begin{bmatrix} 1 & -0.75 \\  -0.75 & 1 \end{bmatrix}$, \\
+
+Gaussian contour sketch: \\
+
+\begin{tikzpicture}
+    \begin{axis}[my style, xtick={-3,-2,...,3}, ytick={-3,-2,...,3}, xmin=-3, xmax=3,  ymin=-3, ymax=3]
+    \end{axis}
+\end{tikzpicture}
+
+\end{enumerate}
+\end{homeworkProblem}
+
+\begin{homeworkProblem}
+See Worksheet6\_Problem7.ipynb notebook at https://github.com/mas-dse/jsw037/tree/master/DSE210.
+\end{homeworkProblem}
+
+\newpage
+
+\begin{homeworkProblem}
+Given:  $\vec{w} = \begin{bmatrix} -3 \\ 4 \end{bmatrix}, \theta = 12\text{.  Find the decision boundary in } \mathbb{R}^2$.\\ \\ \\
+
+The boundary will be orthogonal to $\vec{w}$, and the minimum distance between any point along the boundary and the origin will be $\cfrac{\theta}{\|\vec{w}\|}. \\ \\
+\|\vec{w}\| = \sqrt{(-3)^2 + 4^2} = \sqrt{9 + 16} = \sqrt{25} = 5$, so $\cfrac{\theta}{\|\vec{w}\|} = \cfrac{12}{5}$.  \\ 
+
+The unit vector in the direction of $\vec{w}$ is $\vec{u}_w = \cfrac{\vec{w}}{\|\vec{w}\|} = \begin{bmatrix} \frac{-3}{5} \\[6pt] \frac{4}{5} \end{bmatrix}$.  \\
+
+The intersection of $\vec{w}$ and the boundary occurs at the point $\cfrac{\theta}{\|\vec{w}\|} \times \vec{u}_w = \cfrac{12}{5} \begin{bmatrix} \frac{-3}{5} \\[6pt] \frac{4}{5} \end{bmatrix} = \begin{bmatrix} \frac{-36}{25} \\[6pt] \frac{48}{25} \end{bmatrix}$. \\
+
+If we define $\vec{v}$ to be a vector parallel to the boundary, we know that $\vec{w} \bullet \vec{v} = 0$, since the boundary is orthogonal to $\vec{w}$.  \\
+
+$\vec{w} \bullet \vec{v} = \begin{bmatrix} -3 \\ 4 \end{bmatrix} \bullet \begin{bmatrix} v_1 \\ v_2 \end{bmatrix} = -3 v_1 + 4 v_2 = 0 \implies 4 v_2 = 3 v_1 \implies v_2 = \frac{3}{4} v_1$, so the slope of $\vec{v}$ is $\cfrac{3}{4}.$ \\
+
+Now, since we know a point on the boundary and the slope of the boundary, we can find the $y = mx + b$ slope-intercept equation for the boundary line by using $x = \frac{-36}{25}, y = \frac{48}{25},$ and $m = \frac{3}{4}$:
+\begin{equation*}
+\cfrac{48}{25} = \cfrac{3}{4} \times \cfrac{-36}{25} + b \implies b = \cfrac{48}{25} - \cfrac{3}{4} \times \cfrac{-36}{25} = \cfrac{48}{25} + \cfrac{27}{25} = \cfrac{75}{25} = 3,
+\end{equation*}
+So the boundary line is defined by the equation $y = \cfrac{3}{4}\ x + 3$. \\ \\
+Now we can set each variable to 0 to solve for where the boundary intersects each coordinate axis.  \\ \\
+If $y = 0$, then $x = -4$, and if $x = 0$, then $y = 3$.  \\ \\
+The boundary intersects the coordinate axes at points $\begin{bmatrix} 0 \\ 3 \end{bmatrix}$ and $\begin{bmatrix} -4 \\ 0 \end{bmatrix}$. \\ \\
+
+\begin{tikzpicture}
+         \begin{axis}[my style, minor tick num = 1]
+		\addplot[domain=-15:5]{1/2 * x+5};
+		\node (b) at (axis cs:2,4){boundary};
+		\node (+) at (axis cs:	-2,2){+};
+		\node (-) at (axis cs:-1.5,1.5){-};
+		\node (source) at (axis cs:0,0){};
+       		\node (destination) at (axis cs:-1,2){$\vec{w}$};
+       		\draw[->](source)--(destination);
+    \end{axis}
+\end{tikzpicture}
+
+
+\end{homeworkProblem}
+
+\begin{homeworkProblem}
+See Worksheet6\_Problem9.ipynb notebook at https://github.com/mas-dse/jsw037/tree/master/DSE210.
+\end{homeworkProblem}
+
+
+\end{document}
+
+
+
+

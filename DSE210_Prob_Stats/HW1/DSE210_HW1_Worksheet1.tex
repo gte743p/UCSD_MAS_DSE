@@ -1,0 +1,199 @@
+\documentclass{article}
+
+\usepackage{fancyhdr}
+\usepackage{extramarks}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{tikz}
+\usepackage[plain]{algorithm}
+\usepackage{algpseudocode}
+\usepackage{enumitem}
+\usepackage{mathtools}
+\usepackage{amssymb}
+
+\usetikzlibrary{automata,positioning}
+
+%
+% Basic Document Settings
+%
+
+\topmargin=-0.45in
+\evensidemargin=0in
+\oddsidemargin=0in
+\textwidth=6.5in
+\textheight=9.0in
+\headsep=0.25in
+
+\linespread{1.1}
+
+\pagestyle{fancy}
+\lhead{\hmwkClass\ \hmwkTitle}
+\rhead{\hmwkAuthorName}
+\lfoot{\lastxmark}
+\cfoot{\thepage}
+
+\renewcommand\headrulewidth{0.4pt}
+\renewcommand\footrulewidth{0.4pt}
+
+\setlength\parindent{0pt}
+
+%
+% Added stuff
+%
+
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}
+\setenumerate[0]{label={\alph*)}}
+
+%
+% Create Problem Sections
+%
+
+\newcommand{\enterProblemHeader}[1]{
+    \nobreak\extramarks{}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
+    \nobreak\extramarks{Problem \arabic{#1} (continued)}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
+}
+
+\newcommand{\exitProblemHeader}[1]{
+    \nobreak\extramarks{Problem \arabic{#1} (continued)}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
+    \stepcounter{#1}
+    \nobreak\extramarks{Problem \arabic{#1}}{}\nobreak{}
+}
+
+\setcounter{secnumdepth}{0}
+\newcounter{partCounter}
+\newcounter{homeworkProblemCounter}
+\setcounter{homeworkProblemCounter}{1}
+\nobreak\extramarks{Problem \arabic{homeworkProblemCounter}}{}\nobreak{}
+
+%
+% Homework Problem Environment
+%
+% This environment takes an optional argument. When given, it will adjust the
+% problem counter. This is useful for when the problems given for your
+% assignment aren't sequential. See the last 3 problems of this template for an
+% example.
+%
+\newenvironment{homeworkProblem}[1][-1]{
+    \ifnum#1>0
+        \setcounter{homeworkProblemCounter}{#1}
+    \fi
+    \section{Problem \arabic{homeworkProblemCounter}}
+    \setcounter{partCounter}{1}
+    \enterProblemHeader{homeworkProblemCounter}
+}{
+    \exitProblemHeader{homeworkProblemCounter}
+}
+
+%
+% Homework Details
+%   - Title
+%   - Due date
+%   - Class
+%   - Section/Time
+%   - Instructor
+%   - Author
+%
+
+\newcommand{\hmwkTitle}{Worksheet\ \#1 - Sets and Counting}
+\newcommand{\hmwkDueDate}{January 20, 2017}
+\newcommand{\hmwkClass}{DSE 210}
+\newcommand{\hmwkClassTime}{}
+\newcommand{\hmwkClassInstructor}{Professor: A. Enis \c{C}etin}
+\newcommand{\hmwkClassTA}{Teaching Assistant: Shivani Agrawal}
+\newcommand{\hmwkAuthorName}{\textbf{Joshua Wilson} \and \textbf{A53228518}}
+
+%
+% Title Page
+%
+
+\title{
+    \vspace{2in}
+    \textmd{\textbf{\hmwkClass:\ \hmwkTitle}}\\
+    \vspace{0.1in}\large{\textit{\hmwkClassInstructor}}\\
+    \vspace{0.1in}\large{\textit{\hmwkClassTA}}
+    \vspace{3in}
+}
+
+\author{\hmwkAuthorName}
+\date{}
+
+\renewcommand{\part}[1]{\textbf{\large Part \Alph{partCounter}}\stepcounter{partCounter}\\}
+
+%
+% Various Helper Commands
+%
+
+% Useful for algorithms
+\newcommand{\alg}[1]{\textsc{\bfseries \footnotesize #1}}
+
+% For derivatives
+\newcommand{\deriv}[1]{\frac{\mathrm{d}}{\mathrm{d}x} (#1)}
+
+% For partial derivatives
+\newcommand{\pderiv}[2]{\frac{\partial}{\partial #1} (#2)}
+
+% Integral dx
+\newcommand{\dx}{\mathrm{d}x}
+
+% Alias for the Solution section header
+\newcommand{\solution}{\textbf{\large Solution}}
+
+\newcommand*{\Perm}[2]{{}_{#1}\!P_{#2}}%
+\newcommand*{\Comb}[2]{{}_{#1}C_{#2}}%
+
+% Probability commands: Expectation, Variance, Covariance, Bias
+\newcommand{\E}{\mathrm{E}}
+\newcommand{\Var}{\mathrm{Var}}
+\newcommand{\Cov}{\mathrm{Cov}}
+\newcommand{\Bias}{\mathrm{Bias}}
+
+\begin{document}
+
+\maketitle
+
+\pagebreak
+
+\begin{homeworkProblem}
+
+\begin{enumerate}
+\item A = \{a, b, c, d, e\}
+\item $A^3 = A \times A \times A$
+\item $5^3 = 5 \times 5 \times 5 = \boxed{125}$
+\end{enumerate}
+
+\end{homeworkProblem}
+
+\begin{homeworkProblem}
+There are $\boxed{2^{500}}$ binary sequences of length 500.
+\end{homeworkProblem}
+
+\begin{homeworkProblem}
+\textit{Given:} \textit{A} and \textit{B} are sets with $\abs{A} = 3$ and $\abs{B} = 4$.
+
+\begin{enumerate}
+\item $\abs{A \cup B} = \boxed{7}$ if $A \cap B = \varnothing$
+\item $\abs{A \cup B} = \boxed{4}$ if $A \subset B$
+\item $\abs{A \cap B} = \boxed{3}$ if $A \subset B$, and $\abs{A \cap B} = \boxed{0}$ if $A \cap B = \varnothing$
+
+\end{enumerate}
+
+\end{homeworkProblem}
+
+\begin{homeworkProblem}
+There are $4! = 4 \times 3 \times 2 \times 1 = \boxed{24}$ different orderings.
+\end{homeworkProblem}
+
+\begin{homeworkProblem}
+$\Perm{26}{5} = \cfrac{26!}{(26-5)!} = \cfrac{26!}{21!} = 26 \times 25 \times 24 \times 23 \times 22 = \boxed{7,893,600}$
+\end{homeworkProblem}
+
+\begin{homeworkProblem}
+$\Comb{10}{3} = \cfrac{10!}{(10-3)! 3!} = \cfrac{10!}{7! 3!} = \cfrac{10 \times 9 \times 8}{3 \times 2 \times 1} = \cfrac{720}{6} = \boxed{120}$
+\end{homeworkProblem}
+
+\begin{homeworkProblem}
+$\Perm{10}{5} = \cfrac{10!}{(10-5)!} = \cfrac{10!}{5!} = 10 \times 9 \times 8 \times 7 \times 6 = \boxed{30,240}$
+\end{homeworkProblem}
+
+\end{document}

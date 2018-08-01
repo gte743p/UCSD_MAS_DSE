@@ -1,0 +1,358 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Segments module &#8212; DSE_capstone 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">DSE_capstone 0.1 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-Segments">
+<span id="segments-module"></span><h1>Segments module<a class="headerlink" href="#module-Segments" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="Segments.Segments">
+<em class="property">class </em><code class="descclassname">Segments.</code><code class="descname">Segments</code><span class="sig-paren">(</span><em>conn</em>, <em>queries</em>, <em>args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Segments.html#Segments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Segments.Segments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Data and queries to set relevant segments for various traffic analysis.</p>
+<p>This class is used to sample all available segments by 1 or more methods and store the segments
+in a table for use by other objects.</p>
+<p>Available methods:</p>
+<p>radius:         Select all segments within a given radius of a provided point.</p>
+<p>bounding_box:   Select all segments with a given bounding box.</p>
+<p>sample:         Select a random sample of the provided percent from all segments.</p>
+<p>street:         Select all segments on a given street name.</p>
+<p>road_type:      Select all segments of a given road type.</p>
+<p>ignore:         Select all segments with an Ignore flag of True.</p>
+<p>cum_seg_pct:    Select all segments such that the provided percent of positive traffic points are retained.</p>
+<p>This class will be used in the Pipeline notebook for exploration purposes and in the Production
+python code used to perform the actual clustering and modeling of traffic data.</p>
+<dl class="method">
+<dt id="Segments.Segments.bounding_box">
+<code class="descname">bounding_box</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Segments.html#Segments.bounding_box"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Segments.Segments.bounding_box" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create geom bounding box part of a query.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">string to be used in where clause of bounding box query.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Segments.Segments.create_boundingbox_sql">
+<code class="descname">create_boundingbox_sql</code><span class="sig-paren">(</span><em>table</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Segments.html#Segments.create_boundingbox_sql"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Segments.Segments.create_boundingbox_sql" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create SQL to select all segments within a given bounding box (set in args).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>table</strong> – name of table to select segments from.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">complete sql string to select all segments within a given bounding box.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Segments.Segments.create_cum_seg_pct_sql">
+<code class="descname">create_cum_seg_pct_sql</code><span class="sig-paren">(</span><em>table</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Segments.html#Segments.create_cum_seg_pct_sql"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Segments.Segments.create_cum_seg_pct_sql" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create SQL to create seg_cum_pct table.</p>
+<p>The seg_cum_pct table is used to allow the selection of segments that will retain a given percentage
+of positive traffic data point.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>table</strong> – name of table to select segments from.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">complete sql string to select all segments to retain a given percentage of positive traffic data points.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Segments.Segments.create_cum_seg_pct_table">
+<code class="descname">create_cum_seg_pct_table</code><span class="sig-paren">(</span><em>conn</em>, <em>time_resolution</em>, <em>segments_table</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Segments.html#Segments.create_cum_seg_pct_table"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Segments.Segments.create_cum_seg_pct_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create table showing the cumulative percentage of segments and positive traffic data points.</p>
+<p>Create a table showing the cumulative percentage of segments and positive data points.
+This table allows the user to select segments such that a given percentage of positive traffic data points
+are retained in the data. This was done because there are many segments that have a small number
+of positive traffic data points across the data range. Removing such segments allows one to
+make the data set much smaller while still retaining most of the information contained in the data
+(similar to PCA).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>conn</strong> – database connection object.</li>
+<li><strong>time_resolution</strong> – time window resolution in minutes of traffic data points.</li>
+<li><strong>segments_table</strong> – table name containing segment data</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Segments.Segments.create_ignore_sql">
+<code class="descname">create_ignore_sql</code><span class="sig-paren">(</span><em>table</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Segments.html#Segments.create_ignore_sql"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Segments.Segments.create_ignore_sql" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create query to select only segments with the ignore flag set to TRUE</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>table</strong> – table to select segments from.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">SQL query string</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Segments.Segments.create_radius_sql">
+<code class="descname">create_radius_sql</code><span class="sig-paren">(</span><em>table</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Segments.html#Segments.create_radius_sql"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Segments.Segments.create_radius_sql" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create SQL to select all segments within a given radius (set in args).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>table</strong> – name of table to select segments from.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">complete sql string to select all segments within a given radius.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Segments.Segments.create_road_type_sql">
+<code class="descname">create_road_type_sql</code><span class="sig-paren">(</span><em>table</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Segments.html#Segments.create_road_type_sql"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Segments.Segments.create_road_type_sql" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create SQL to select all segments of a given road type (set in args).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>table</strong> – name of table to select segments from.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">complete sql string to select all segments of a given road type.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Segments.Segments.create_sample_sql">
+<code class="descname">create_sample_sql</code><span class="sig-paren">(</span><em>table</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Segments.html#Segments.create_sample_sql"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Segments.Segments.create_sample_sql" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create SQL to select random sample of a given percentage (set in args) of segments.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>table</strong> – name of table to select segments from.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">complete sql string to select a random sample of a given percentage) of all segments</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Segments.Segments.create_street_sql">
+<code class="descname">create_street_sql</code><span class="sig-paren">(</span><em>table</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Segments.html#Segments.create_street_sql"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Segments.Segments.create_street_sql" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create SQL to select all segments on a given street (set in args).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>table</strong> – name of table to select segments from.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">complete sql string to select all segments on a given street.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Segments.Segments.create_with">
+<code class="descname">create_with</code><span class="sig-paren">(</span><em>query</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Segments.html#Segments.create_with"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Segments.Segments.create_with" title="Permalink to this definition">¶</a></dt>
+<dd><p>DEPRECATED! 
+Create with clause for queries.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>query</strong> – query to add with clause to.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Segments.Segments.mile_to_meter">
+<code class="descname">mile_to_meter</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Segments.html#Segments.mile_to_meter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Segments.Segments.mile_to_meter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert miles to meters for use in geom queries.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">meters as a string.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Segments.Segments.road_type">
+<code class="descname">road_type</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Segments.html#Segments.road_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Segments.Segments.road_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create where clause of query to select all segments of a given road type.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">string to be used in where clause of query to find segments of a given road type.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Segments.Segments.run_queries">
+<code class="descname">run_queries</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Segments.html#Segments.run_queries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Segments.Segments.run_queries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run all queries to select desired segments for clustering and modelling.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Segments.Segments.sql_radius">
+<code class="descname">sql_radius</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Segments.html#Segments.sql_radius"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Segments.Segments.sql_radius" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create geom radius part of a query.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">string to be used as where clause in segments radius query.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Segments.Segments.street">
+<code class="descname">street</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Segments.html#Segments.street"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Segments.Segments.street" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create where clause of query to select all segments on a given street.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">string to be used in where clause of query to find segments on a given street.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Segments.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">DSE_capstone 0.1 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Ken Kroel.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.2.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,315 @@
+\documentclass{article}
+
+\usepackage{fancyhdr}
+\usepackage{extramarks}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{tikz}
+\usepackage[plain]{algorithm}
+\usepackage{algpseudocode}
+\usepackage{enumitem}
+\usepackage{mathtools}
+\usepackage{amssymb}
+
+\usetikzlibrary{automata,positioning}
+
+%
+% Basic Document Settings
+%
+
+\topmargin=-0.45in
+\evensidemargin=0in
+\oddsidemargin=0in
+\textwidth=6.5in
+\textheight=9.0in
+\headsep=0.25in
+
+\linespread{1.1}
+
+\pagestyle{fancy}
+\lhead{\hmwkClass\ \hmwkTitle}
+\rhead{\hmwkAuthorName}
+\lfoot{\lastxmark}
+\cfoot{\thepage}
+
+\renewcommand\headrulewidth{0.4pt}
+\renewcommand\footrulewidth{0.4pt}
+
+\setlength\parindent{0pt}
+
+%
+% Added stuff
+%
+
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}
+\setenumerate[0]{label={(\alph*)}}
+
+%
+% Create Problem Sections
+%
+
+\newcommand{\enterProblemHeader}[1]{
+    \nobreak\extramarks{}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
+    \nobreak\extramarks{Problem \arabic{#1} (continued)}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
+}
+
+\newcommand{\exitProblemHeader}[1]{
+    \nobreak\extramarks{Problem \arabic{#1} (continued)}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
+    \stepcounter{#1}
+    \nobreak\extramarks{Problem \arabic{#1}}{}\nobreak{}
+}
+
+\setcounter{secnumdepth}{0}
+\newcounter{partCounter}
+\newcounter{homeworkProblemCounter}
+\setcounter{homeworkProblemCounter}{1}
+\nobreak\extramarks{Problem \arabic{homeworkProblemCounter}}{}\nobreak{}
+
+%
+% Homework Problem Environment
+%
+% This environment takes an optional argument. When given, it will adjust the
+% problem counter. This is useful for when the problems given for your
+% assignment aren't sequential. See the last 3 problems of this template for an
+% example.
+%
+\newenvironment{homeworkProblem}[1][-1]{
+    \ifnum#1>0
+        \setcounter{homeworkProblemCounter}{#1}
+    \fi
+    \section{Problem \arabic{homeworkProblemCounter}}
+    \setcounter{partCounter}{1}
+    \enterProblemHeader{homeworkProblemCounter}
+}{
+    \exitProblemHeader{homeworkProblemCounter}
+}
+
+%
+% Homework Details
+%   - Title
+%   - Due date
+%   - Class
+%   - Section/Time
+%   - Instructor
+%   - Author
+%
+
+\newcommand{\hmwkTitle}{Worksheet\ \#3 - Multiple Events, Conditioning, and Independence}
+\newcommand{\hmwkDueDate}{January 20, 2017}
+\newcommand{\hmwkClass}{DSE 210}
+\newcommand{\hmwkClassTime}{}
+\newcommand{\hmwkClassInstructor}{Professor: A. Enis \c{C}etin}
+\newcommand{\hmwkClassTA}{Teaching Assistant: Shivani Agrawal}
+\newcommand{\hmwkAuthorName}{\textbf{Joshua Wilson} \and \textbf{A53228518}}
+
+%
+% Title Page
+%
+
+\title{
+    \vspace{2in}
+    \textmd{\textbf{\hmwkClass:\ \hmwkTitle}}\\
+    \vspace{0.1in}\large{\textit{\hmwkClassInstructor}}\\
+    \vspace{0.1in}\large{\textit{\hmwkClassTA}}
+    \vspace{3in}
+}
+
+\author{\hmwkAuthorName}
+\date{}
+
+\renewcommand{\part}[1]{\textbf{\large Part \Alph{partCounter}}\stepcounter{partCounter}\\}
+
+%
+% Various Helper Commands
+%
+
+% Useful for algorithms
+\newcommand{\alg}[1]{\textsc{\bfseries \footnotesize #1}}
+
+% For derivatives
+\newcommand{\deriv}[1]{\frac{\mathrm{d}}{\mathrm{d}x} (#1)}
+
+% For partial derivatives
+\newcommand{\pderiv}[2]{\frac{\partial}{\partial #1} (#2)}
+
+% Integral dx
+\newcommand{\dx}{\mathrm{d}x}
+
+% Alias for the Solution section header
+\newcommand{\solution}{\textbf{\large Solution}}
+
+\newcommand*{\Perm}[2]{{}_{#1}\!P_{#2}}%
+\newcommand*{\Comb}[2]{{}_{#1}C_{#2}}%
+
+% Probability commands: Expectation, Variance, Covariance, Bias
+\newcommand{\E}{\mathrm{E}}
+\newcommand{\Var}{\mathrm{Var}}
+\newcommand{\Cov}{\mathrm{Cov}}
+\newcommand{\Bias}{\mathrm{Bias}}
+\newcommand\given[1][]{\:#1\vert\:}
+
+\begin{document}
+
+\maketitle
+
+\pagebreak
+
+\begin{homeworkProblem}
+$\Omega = \{H, T\}^3$, so $\abs{\Omega} = 2^3 = 8$.
+\begin{enumerate}
+\item 
+$p(2H \given first\ is\ H) 
+= \cfrac{p(2H \cap first\ is\ H)}{p(first\ is\ H)} 
+= \cfrac{p(\{(H, H, T), (H, T, H)\}}{p(\{(H, H, H), (H, H, T), (H, T, H), (H, T, T)\}} 
+= \cfrac{\frac{2}{8}}{\frac{4}{8}} 
+= \boxed{\cfrac{1}{2}}$
+\item
+$p(2H \given first\ is\ T) 
+= \cfrac{p(2H \cap first\ is\ T)}{p(first\ is\ T)}
+= \cfrac{p(\{(T, H, H)\}}{p(\{(H, H, H), (H, H, T), (H, T, H), (H, T, T)\}} 
+= \cfrac{\frac{1}{8}}{\frac{4}{8}} 
+= \boxed{\cfrac{1}{4}}$
+\item 
+$p(2H \given first\ two\ are\ H) 
+= p(third\ not\ H)
+= \boxed{\cfrac{1}{2}}$
+\item 
+$p(2H \given first\ two\ are\ T) 
+= \boxed{0}$ (not possible)
+\item
+$p(2H \given first\ is\ H\ and\ third\ is\ T) 
+= p(second\ is\ H)
+= \boxed{\cfrac{1}{2}}$
+
+\end{enumerate}
+\end{homeworkProblem}
+
+\begin{homeworkProblem}[3]
+Let S be the event that the bill passes the Senate, and H be the event that the bill passes the House. \\ \\
+The event that the bill passes both the House and the Senate is represented by $S \cap H$. \\ \\
+We are provided $p(H) = 0.6$, $p(S) = 0.8$, and $p(H \cup S) = 0.9$.\\ \\
+$p(H \cup S) = p(H) + p(S) - p(H \cap S) \implies p(H \cap S) = p(H) + p(S) - p(H \cup S)$, \\ \\
+so $p(H \cap S) = 0.6 + 0.8 - 0.9 = \boxed{0.5}$
+
+\end{homeworkProblem}
+
+\begin{homeworkProblem}[5]
+\begin{enumerate}
+\item
+$p(heart \given red) = \cfrac{p(heart \cap red)}{p(red)} = \cfrac{\frac{1}{4}}{\frac{1}{2}} = \boxed{\cfrac{1}{2}}$
+\item 
+$p(>10 \given heart) = \cfrac{p(>10\ \cap heart)}{p(heart)} = \cfrac{\frac{4}{52}}{\frac{1}{4}} = \boxed{\cfrac{4}{13}}$
+\item 
+$p(Jack \given >10) = \cfrac{p(Jack\ \cap >10)}{p(>10)} = \cfrac{\frac{4}{52}}{\frac{16}{52}} = \boxed{\cfrac{1}{4}}$
+\end{enumerate}
+\end{homeworkProblem}
+
+\newpage
+
+\begin{homeworkProblem}[7]
+\begin{enumerate}
+\item
+$p(\text{total is} >7 \given \text{first is 4}) = \cfrac{p(\text{total is} >7 \cap \text{first is 4})}{p(\text{first is 4})} = \cfrac{p(\{(4,4), (4,5), (4,6)\})}{p(4)} = \cfrac{\frac{3}{36}}{\frac{1}{6}} = \boxed{\cfrac{1}{2}}$
+\item
+$p(\text{total is} >7 \given \text{first is 1}) = \boxed{0}$ (not possible)
+\item
+$p(\text{total is} >7 \given \text{first is} >3) = \cfrac{p(\text{total is} >7 \cap \text{first is} >3)}{p(\text{first is} >3)} \\ = \cfrac{p(\{(4,4), (4,5), (4,6), (5,3), (5,4), (5,5), (5,6), (6,2), (6,3), (6,4), (6,5), (6,6)\})}{p(\{4,5,6\})} = \cfrac{\frac{12}{36}}{\frac{3}{6}} = \boxed{\cfrac{2}{3}}$
+\item
+$p(\text{total is} >7 \given \text{first is} <5) = \cfrac{p(\text{total is} >7 \cap \text{first is} <5)}{p(\text{first is} <5)} \\ = \cfrac{p(\{(2,6),(3,5),(3,6),(4,4),(4,5),(4,6)\})}{p(\{1,2,3,4\})} = \cfrac{\frac{6}{36}}{\frac{4}{6}} = \boxed{\cfrac{1}{4}}$
+
+\end{enumerate}
+\end{homeworkProblem}
+
+\begin{homeworkProblem}[9]
+We are provided the following: \\ \\
+$p(F_1) = 0.25$, $p(defective \given F_1) = 0.05$, \\ \\ 
+$p(F_2) = 0.35$, $p(defective \given F_2) = 0.04$, \\ \\
+$p(F_3) = 0.4$, $p(defective \given F_3) = 0.02$ \\
+\begin{enumerate}
+\item
+$p(defective) \\
+= p(defective \given F_1) \times p(F_1) + p(defective \given F_2) \times p(F_2) + p(defective \given F_3) \times p(F_3) \\
+= 0.05 \times 0.25 + 0.04 \times 0.35 + 0.02 \times 0.4 \approx \boxed{0.219,\ or\ 21.9\%}$
+\item
+$p(F_1 \given defective) = \cfrac{p(defective \given F_1) \times p(F_1)}{p(defective)} = \cfrac{0.05 \times 0.25}{0.219} \approx \boxed{0.057,\ or\ 5.7\%}$
+\end{enumerate}
+\end{homeworkProblem}
+
+\newpage
+
+\begin{homeworkProblem}[11]
+We are provided the following: \\ \\
+$p(d_1) = p(d_2) = p(d_3) = \frac{1}{3},\ p(+ \given d_1) = 0.8,\ p(+ \given d_2) = 0.6,\ p(+ \given d_3) = 0.4$ \\
+\begin{enumerate}
+\item
+$p(+) = p(+ \given d_1) \times p(d_1) + p(+ \given d_2) \times p(d_2) + p(+ \given d_3) \times p(d_3) \\ = 0.8 \times \frac{1}{3} + 0.6 \times \frac{1}{3} + 0.4 \times \frac{1}{3} = \boxed{0.6}$
+\item
+$p(d_1 \given +) = \cfrac{p(+ \given d_1) \times p(d_1)}{p(+)} = \cfrac{0.8 \times \frac{1}{3}}{0.6} = \boxed{\cfrac{4}{9}}, \\ \\
+p(d_2 \given +) = \cfrac{p(+ \given d_2) \times p(d_2)}{p(+)} = \cfrac{0.6 \times \frac{1}{3}}{0.6} = \boxed{\cfrac{1}{3}}, \\ \\
+p(d_3 \given +) = \cfrac{p(+ \given d_3) \times p(d_3)}{p(+)} = \cfrac{0.4 \times \frac{1}{3}}{0.6} = \boxed{\cfrac{2}{9}}$
+\end{enumerate}
+\end{homeworkProblem}
+
+\begin{homeworkProblem}[13]
+We are provided the following: \\ \\
+$p(tiger) = \frac{1}{3},\ p(+ \given tiger) = \frac{5}{6}, 
+p(mammoth) = \frac{2}{3},\ p(+ \given mammoth) = \frac{1}{3}$. \\ \\ \\
+$p(tiger \given -) = \cfrac{p(- \given tiger) \times p(tiger)}{p(-)} = \cfrac{\big(1 - p(+ \given tiger)\big) \times p(tiger)}{1 - p(+)}$, \\ \\
+and $p(+) = p(+ \given tiger) \times p(tiger) + p(+ \given mammoth) \times p(mammoth) = \frac{5}{6} \times \frac{1}{3} + \frac{1}{3} \times \frac{2}{3} = \frac{5}{18} + \frac{2}{9} = \cfrac{1}{2}$, \\ \\
+so $p(tiger \given -) = \cfrac{(1 - \frac{5}{6}) \times \frac{1}{3}}{1 - \frac{1}{2}} = \cfrac{\frac{1}{6} \times \frac{1}{3}}{\frac{1}{2}} = \cfrac{\frac{1}{18}}{\frac{1}{2}} = \boxed{\cfrac{1}{9}}$
+\end{homeworkProblem}
+
+\newlist{nestedenum}{enumerate}{2}% allow two levels of nesting in an enumerate-like environment
+\setlist[nestedenum]{nosep}% compact spacing for all nesting levels
+\setlist[nestedenum,1]{label=(\alph*)}% labels for top level
+\setlist[nestedenum,2]{label=(\arabic*)}% labels for second level
+
+\newpage
+
+\begin{homeworkProblem}[15]
+$E_1, E_2$ are independent events if $p(E_1 \cap E_2) = p(E_1) + p(E_2).$ \\
+\begin{nestedenum}
+\item
+	\begin{nestedenum}
+		\item
+		\boxed{A,\ B\ independent} \\
+		\item
+		$p(A) = \frac{1}{2}, p(D) = p(\{(H, H, H), (T, T, T)\}) = \frac{2}{8} = \frac{1}{4}, \\ \\
+		p(A \cap D) = p(\{(H, H, H)\}) = \frac{1}{8}, \\ \\
+		p(A) \times p(D) = \frac{1}{2} \times \frac{1}{4} = \frac{1}{8} = p(A \cap D) \implies \boxed{A,\ D\ independent}$ \\
+		\item
+		$p(A) = \frac{1}{2}, p(E) = p(\{(H, T, T), (T, H, T), (T, T, H)\}) = \frac{3}{8}, \\ \\
+		p(A \cap E) = p(\{(H, T, T)\}) = \frac{1}{8}, \\ \\
+		p(A) \times p(E) = \frac{1}{2} \times \frac{3}{8} = \frac{3}{16} \neq \frac{1}{8} = p(A \cap E) \implies \boxed{A,\ E\ not\ independent}$ \\
+		\item
+		$p(D) = \frac{1}{4}, p(E) = \frac{3}{8}, \\ \\
+		p(D \cap E) = 0\ (not\ possible), \\ \\
+		p(D) \times p(E) \neq p(D \cap E) \implies \boxed{D,\ E\ not\ independent}$ \\
+	\end{nestedenum}
+\item
+	\begin{nestedenum}
+		\item
+		\boxed{A, B, C\ independent} \\
+		\item
+		$p(A) \times p(B) \times p(D) = \frac{1}{2} \times \frac{1}{2} \times \frac{1}{4} = \frac{1}{16}, \\ \\
+		p(A \cap B \cap D) = 0\ (not\ possible), \\ \\
+		p(A) \times p(B) \times p(D) \neq p(A \cap B \cap D) \implies \boxed{A, B, D\ not\ independent}$ \\
+		\item
+		\boxed{C, D, E\ not\ independent}
+	\end{nestedenum}
+\end{nestedenum}
+\end{homeworkProblem}
+
+\begin{homeworkProblem}[17]
+We are provided the following: \\ \\
+$p(UCLA) = 0.5,\ p(UCSD) = 0.3,\ p(UCLA \cap UCSD) = 0.2$. \\
+\begin{enumerate}
+\item
+$p(UCSD \given UCLA) = \cfrac{p(UCSD \cap UCLA)}{p(UCLA)} = \cfrac{0.2}{0.5} = \boxed{0.4}$ \\
+\item
+$p(UCLA) \times p(UCSD) = 0.5 \times 0.3 = 0.15 \neq 0.2 = p(UCLA\ \cap\ UCSD) \implies \boxed{UCLA, UCSD\ not\ independent}$
+\end{enumerate}
+\end{homeworkProblem}
+
+\end{document}

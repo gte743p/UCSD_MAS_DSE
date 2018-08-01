@@ -1,0 +1,475 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Utility &#8212; DSE_capstone 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">DSE_capstone 0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for Utility</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="c1"># from sklearn import cluster, datasets, mixture</span>
+<span class="c1"># from sklearn.neighbors import kneighbors_graph</span>
+<span class="kn">from</span> <span class="nn">sklearn.preprocessing</span> <span class="k">import</span> <span class="n">StandardScaler</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">cycle</span><span class="p">,</span> <span class="n">islice</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="c1"># import hdbscan</span>
+<span class="kn">import</span> <span class="nn">joblib</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">boto.utils</span> <span class="k">import</span> <span class="n">get_instance_metadata</span>
+
+<span class="kn">from</span> <span class="nn">scipy.sparse</span> <span class="k">import</span> <span class="n">csr_matrix</span>
+<span class="kn">from</span> <span class="nn">sklearn.cluster</span> <span class="k">import</span> <span class="n">KMeans</span>
+<span class="kn">from</span> <span class="nn">sklearn.decomposition</span> <span class="k">import</span> <span class="n">PCA</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">create_engine</span>
+
+<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="k">import</span> <span class="n">PredefinedSplit</span><span class="p">,</span> <span class="n">train_test_split</span><span class="p">,</span> <span class="n">StratifiedKFold</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+<div class="viewcode-block" id="Utility"><a class="viewcode-back" href="../Utility.html#Utility.Utility">[docs]</a><span class="k">class</span> <span class="nc">Utility</span><span class="p">:</span>
+
+    
+    <span class="sd">&quot;&quot;&quot; Utility class to hold helper functions for data pre-processing and modeling.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Constructor for Utility class.</span>
+<span class="sd">        </span>
+<span class="sd">        :param file_args: dict containing all arguments for the various helper functions</span>
+<span class="sd">        :return: Utility instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_args</span> <span class="o">=</span> <span class="n">file_args</span>
+
+        
+<div class="viewcode-block" id="Utility.get_modeling_data"><a class="viewcode-back" href="../Utility.html#Utility.Utility.get_modeling_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_modeling_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Get modeling data from the database and split into train and test data sets.</span>
+
+<span class="sd">        Splitting can be done either randomly or by date to allow for testing with a specific date range.</span>
+
+<span class="sd">        :return: 2 data frames, 1 for the training data and 1 for the test data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">sql_modeling_data</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM modeling_data&#39;</span>
+        <span class="n">modeling_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">sql_modeling_data</span><span class="p">,</span> <span class="n">con</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="p">)</span>
+        
+        <span class="c1"># remove events and padres games if not included</span>
+        <span class="n">event_cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">modeling_data</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;event&#39;</span><span class="p">)]</span>
+<span class="c1">#        if not self.file_args[&#39;add_events&#39;]:</span>
+<span class="c1">#            modeling_data.drop(event_cols, axis=1, inplace=True)</span>
+<span class="c1">#            print(&#39;removing events...&#39;)</span>
+<span class="c1">#        if not self.file_args[&#39;add_padres&#39;]:</span>
+<span class="c1">#            modeling_data.drop(&#39;padres_game&#39;, axis=1, inplace=True)</span>
+<span class="c1">#            print(&#39;removing padres games...&#39;)</span>
+        
+        <span class="c1"># train test split</span>
+        <span class="n">train_data</span> <span class="o">=</span> <span class="n">modeling_data</span><span class="p">[</span><span class="n">modeling_data</span><span class="p">[</span><span class="s1">&#39;train_test_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;train_test_method&#39;</span><span class="p">])]</span><span class="o">==</span><span class="s1">&#39;train&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">test_data</span> <span class="o">=</span> <span class="n">modeling_data</span><span class="p">[</span><span class="n">modeling_data</span><span class="p">[</span><span class="s1">&#39;train_test_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;train_test_method&#39;</span><span class="p">])]</span><span class="o">==</span><span class="s1">&#39;test&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">train_data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">train_data</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;train_test&#39;</span><span class="p">)],</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">test_data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">test_data</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;train_test&#39;</span><span class="p">)],</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        
+        <span class="c1"># fix clustering columns</span>
+        <span class="n">train_data</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;cluster_</span><span class="si">{}</span><span class="s1">_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;cluster_method&#39;</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;train_test_method&#39;</span><span class="p">]):</span><span class="s1">&#39;cluster&#39;</span><span class="p">},</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">test_data</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;cluster_</span><span class="si">{}</span><span class="s1">_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;cluster_method&#39;</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;train_test_method&#39;</span><span class="p">]):</span><span class="s1">&#39;cluster&#39;</span><span class="p">},</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">train_data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">train_data</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;cluster_&#39;</span><span class="p">)],</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">test_data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">test_data</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;cluster_&#39;</span><span class="p">)],</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>    
+
+        <span class="k">return</span> <span class="n">train_data</span><span class="p">,</span> <span class="n">test_data</span></div>
+
+
+<div class="viewcode-block" id="Utility.unskew_data"><a class="viewcode-back" href="../Utility.html#Utility.Utility.unskew_data">[docs]</a>    <span class="k">def</span> <span class="nf">unskew_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">neg_pos_ratio</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Unskew a dataframe.</span>
+
+<span class="sd">        Splits the data into positive and negative dataframes based on the leve_binary column, then performs a sample</span>
+<span class="sd">        (with the seed from the args file for repeatability) from the negative dataframe, and finally concatenates the</span>
+<span class="sd">        sampled negative dataframe to the positive dataframe.</span>
+
+<span class="sd">        :param data: Pandas dataframe.</span>
+<span class="sd">        :param neg_pos_ratio: Desired ratio of negative to positive data in results</span>
+<span class="sd">        :return: dataframe of unskewed data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># split into positive and negative</span>
+        <span class="n">pos_df</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;level_binary&#39;</span><span class="p">]</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">neg_df</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;level_binary&#39;</span><span class="p">]</span><span class="o">==</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># randomly sample negative rows</span>
+        <span class="n">pos_rows</span> <span class="o">=</span> <span class="n">pos_df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">neg_df_sampled</span> <span class="o">=</span> <span class="n">neg_df</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">n</span> <span class="o">=</span> <span class="n">pos_rows</span><span class="o">*</span><span class="n">neg_pos_ratio</span><span class="p">,</span> 
+                                       <span class="n">random_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;seed&#39;</span><span class="p">])</span>
+
+        <span class="c1"># concatenate positives and sampled negatives</span>
+        <span class="n">unskewed_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">pos_df</span><span class="p">,</span> <span class="n">neg_df_sampled</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">unskewed_data</span></div>
+
+
+<div class="viewcode-block" id="Utility.get_neg_pos_ratio"><a class="viewcode-back" href="../Utility.html#Utility.Utility.get_neg_pos_ratio">[docs]</a>    <span class="k">def</span> <span class="nf">get_neg_pos_ratio</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Get the negative to positive traffic congestion data (level_binary column) of the given dataframe.</span>
+
+<span class="sd">        :param data: dataframe containing traffic congestion data with a level_binary field indicating the presence of traffic.</span>
+<span class="sd">        :return: Negative positive ration as a float.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">pos_df</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;level_binary&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="n">neg_df</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">pos_df</span>
+        <span class="n">neg_pos_ratio</span> <span class="o">=</span> <span class="n">neg_df</span><span class="o">*</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">pos_df</span> <span class="k">if</span> <span class="n">pos_df</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">99999</span>
+        <span class="k">return</span> <span class="nb">round</span><span class="p">(</span><span class="n">neg_pos_ratio</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Utility.create_week_cv_folds"><a class="viewcode-back" href="../Utility.html#Utility.Utility.create_week_cv_folds">[docs]</a>    <span class="k">def</span> <span class="nf">create_week_cv_folds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">num_weeks</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Create cross validation folds by week.</span>
+
+<span class="sd">        Can be used to create cross validation folds for 1 week periods</span>
+
+<span class="sd">        :param data: Dataframs of traffic data.</span>
+<span class="sd">        :param num_weeks: Number of weeks to hold out for cross validation.</span>
+<span class="sd">        :return: Numpy array of data with -1 indicating training data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># create array of -1 values to indicate training set</span>
+        <span class="n">week_folds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+
+        <span class="c1"># get last date of data - either last date of input data, or last date before test_date_start</span>
+        <span class="c1">#last_date = data[&#39;date&#39;].max()</span>
+        <span class="n">last_date</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;test_date_start&#39;</span><span class="p">],</span> <span class="s1">&#39;%m/</span><span class="si">%d</span><span class="s1">/%Y&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span> <span class="o">-</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        
+        <span class="c1"># set final num_weeks number of weeks to different validation folds</span>
+        <span class="k">for</span> <span class="n">wk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_weeks</span><span class="p">):</span>
+            <span class="n">wk_end</span> <span class="o">=</span> <span class="n">last_date</span> <span class="o">-</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="n">wk</span><span class="o">*</span><span class="mi">7</span><span class="p">)</span>
+            <span class="n">wk_start</span> <span class="o">=</span> <span class="n">wk_end</span> <span class="o">-</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
+            <span class="n">val_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">wk_start</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">wk_end</span><span class="p">))</span>
+            <span class="n">week_folds</span><span class="p">[</span><span class="n">val_indices</span><span class="p">]</span> <span class="o">=</span> <span class="n">wk</span>
+        <span class="k">return</span> <span class="n">week_folds</span></div>
+
+
+<div class="viewcode-block" id="Utility.process_train_test"><a class="viewcode-back" href="../Utility.html#Utility.Utility.process_train_test">[docs]</a>    <span class="k">def</span> <span class="nf">process_train_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">split_method</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Perform train test split on the provided dataframe by the provided method.</span>
+
+<span class="sd">        Splitting can be done either randomly or by date to allow for testing with a specific date range.</span>
+<span class="sd">        Will unskew the training and or test data before returning if the flag has been set in the args file.</span>
+
+<span class="sd">        :param data: Dataframe of traffic data</span>
+<span class="sd">        :param split_method: how to split data (random or by date)</span>
+<span class="sd">        :return: 2 data frames, 1 for the training data and 1 for the test data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">split_method</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">split_method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;train_test_method&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">split_method</span> <span class="o">==</span> <span class="s1">&#39;date&#39;</span><span class="p">:</span>
+            <span class="n">train_data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;test_date_start&#39;</span><span class="p">],</span> <span class="s1">&#39;%m/</span><span class="si">%d</span><span class="s1">/%Y&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">())</span> <span class="o">|</span>
+                              <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;test_date_end&#39;</span><span class="p">],</span> <span class="s1">&#39;%m/</span><span class="si">%d</span><span class="s1">/%Y&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">())]</span>
+            <span class="n">test_data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;test_date_start&#39;</span><span class="p">],</span> <span class="s1">&#39;%m/</span><span class="si">%d</span><span class="s1">/%Y&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">())</span> <span class="o">&amp;</span>
+                             <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;test_date_end&#39;</span><span class="p">],</span> <span class="s1">&#39;%m/</span><span class="si">%d</span><span class="s1">/%Y&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">())]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">train_data</span><span class="p">,</span> <span class="n">test_data</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;model_test_ratio&#39;</span><span class="p">],</span> 
+                                                     <span class="n">random_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;seed&#39;</span><span class="p">])</span>
+            
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;train date range: &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">train_data</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]))</span><span class="o">+</span><span class="s2">&quot; - &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">train_data</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">])))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;test date range: &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">test_data</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]))</span><span class="o">+</span><span class="s2">&quot; - &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">test_data</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">])))</span>
+        
+        <span class="c1"># calculate negative to positive ratio in train and test data</span>
+        <span class="n">trn_ratio</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_neg_pos_ratio</span><span class="p">(</span><span class="n">train_data</span><span class="p">)</span>
+        <span class="n">tst_ratio</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_neg_pos_ratio</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;negative positive ratio in train data = </span><span class="si">{:01.1f}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trn_ratio</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;negative positive ratio in test data = </span><span class="si">{:01.1f}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tst_ratio</span><span class="p">))</span>
+        
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;unskew_train&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">trn_ratio</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;unskew_ratio&#39;</span><span class="p">]):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;unskewing train data to negative positive ratio of </span><span class="si">{}</span><span class="s1">...&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;unskew_ratio&#39;</span><span class="p">]))</span>
+            <span class="n">train_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unskew_data</span><span class="p">(</span><span class="n">train_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;unskew_ratio&#39;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;not unskewing train data...&#39;</span><span class="p">)</span>
+            
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;unskew_test&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">tst_ratio</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;unskew_ratio&#39;</span><span class="p">]):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;unskewing test data to negative positive ratio of </span><span class="si">{}</span><span class="s1">...&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;unskew_ratio&#39;</span><span class="p">]))</span>
+            <span class="n">test_data</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">unskew_data</span><span class="p">(</span><span class="n">test_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;unskew_ratio&#39;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;not unskewing test data...&#39;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">train_data</span><span class="p">,</span> <span class="n">test_data</span></div>
+
+
+<div class="viewcode-block" id="Utility.get_validation_splits"><a class="viewcode-back" href="../Utility.html#Utility.Utility.get_validation_splits">[docs]</a>    <span class="k">def</span> <span class="nf">get_validation_splits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Create cross validation folds of validation data either by date or randomly.</span>
+
+<span class="sd">        :param data:Dataframe to split</span>
+<span class="sd">        :return: Stratified folds of the validation split values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;train_test_method&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;date&#39;</span><span class="p">:</span>
+            <span class="n">week_folds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_week_cv_folds</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;num_cv_folds&#39;</span><span class="p">])</span>
+            <span class="n">ps</span> <span class="o">=</span> <span class="n">PredefinedSplit</span><span class="p">(</span><span class="n">week_folds</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;train_test_method&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;random&#39;</span><span class="p">:</span>
+            <span class="n">ps</span> <span class="o">=</span> <span class="n">StratifiedKFold</span><span class="p">(</span><span class="n">n_splits</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;num_cv_folds&#39;</span><span class="p">],</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;seed&#39;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">ps</span></div>
+
+
+<div class="viewcode-block" id="Utility.add_best_models"><a class="viewcode-back" href="../Utility.html#Utility.Utility.add_best_models">[docs]</a>    <span class="k">def</span> <span class="nf">add_best_models</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val_dict</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Add best model to provided results dictionary.</span>
+
+<span class="sd">        :param val_dict: Dictionary to be updated.</span>
+<span class="sd">        :return: None, val_dict is updated in place.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">stage</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;stage_1&#39;</span><span class="p">,</span> <span class="s1">&#39;stage_2&#39;</span><span class="p">]:</span>
+            <span class="n">best_models_dict</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">clust</span> <span class="ow">in</span> <span class="n">val_dict</span><span class="p">[</span><span class="n">stage</span><span class="p">][</span><span class="s1">&#39;cluster_counts&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">best_clust_score</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">val_dict</span><span class="p">[</span><span class="n">stage</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="nb">str</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;model&#39;</span><span class="p">):</span>
+                        <span class="n">clust_score</span> <span class="o">=</span> <span class="n">val_dict</span><span class="p">[</span><span class="n">stage</span><span class="p">][</span><span class="n">model</span><span class="p">][</span><span class="n">clust</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="n">clust_score</span> <span class="o">&gt;</span> <span class="n">best_clust_score</span><span class="p">:</span>
+                            <span class="n">best_models_dict</span><span class="p">[</span><span class="n">clust</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span>
+                            <span class="n">best_clust_score</span> <span class="o">=</span> <span class="n">clust_score</span>
+            <span class="n">val_dict</span><span class="p">[</span><span class="n">stage</span><span class="p">][</span><span class="s1">&#39;best_models&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">best_models_dict</span></div>
+
+
+<div class="viewcode-block" id="Utility.get_predefined_val_split"><a class="viewcode-back" href="../Utility.html#Utility.Utility.get_predefined_val_split">[docs]</a>    <span class="k">def</span> <span class="nf">get_predefined_val_split</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Get a predefined validation split for use in the Step 2 Evaluating Models notebook.</span>
+<span class="sd">        </span>
+<span class="sd">        Marks data as training or validation using a numpy array with -1 to indicate training data</span>
+<span class="sd">        and 0 to indicate validation data.</span>
+
+<span class="sd">        See this link for more details:</span>
+<span class="sd">        https://stackoverflow.com/questions/43764999/python-machine-learning-perform-a-grid-search-on-custom-validation-set/43766334#43766334</span>
+
+<span class="sd">        :param data: Dataframe to split.</span>
+<span class="sd">        :return: Numpy array of data with -1 indicating training data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># create array of -1 values to indicate training set</span>
+        <span class="n">val_fold</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+
+        <span class="c1"># set validation set indices to 0</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;train_val_method&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;date&#39;</span><span class="p">:</span>
+            <span class="c1"># get indices where date is within val_date range</span>
+            <span class="n">val_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;val_date_start&#39;</span><span class="p">],</span> <span class="s1">&#39;%m/</span><span class="si">%d</span><span class="s1">/%Y&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">())</span> <span class="o">&amp;</span>
+                                   <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;val_date_end&#39;</span><span class="p">],</span> <span class="s1">&#39;%m/</span><span class="si">%d</span><span class="s1">/%Y&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;train_val_method&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;random&#39;</span><span class="p">:</span>
+            <span class="c1"># get random sample of indices</span>
+            <span class="n">val_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> 
+                                           <span class="n">size</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;model_val_ratio&#39;</span><span class="p">])),</span>
+                                           <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        
+        <span class="n">val_fold</span><span class="p">[</span><span class="n">val_indices</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="n">val_fold</span></div>
+
+
+<div class="viewcode-block" id="Utility.get_best_model"><a class="viewcode-back" href="../Utility.html#Utility.Utility.get_best_model">[docs]</a>    <span class="k">def</span> <span class="nf">get_best_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stage</span><span class="p">,</span> <span class="n">cluster</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Get the best model for the given cluster in the given modeling stage.</span>
+
+<span class="sd">        Best model is determined by reading the val_results_dict.pkl file.</span>
+
+<span class="sd">        :param stage: Stage of modeling: 1 (binary is traffic) or 2 (level of traffic assuming traffic in stage 1).</span>
+<span class="sd">        :param cluster: Cluster number to find best model for.</span>
+<span class="sd">        :return: best model object and model type description string.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">bmf</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;save_dir&#39;</span><span class="p">],</span> <span class="s1">&#39;val_results_dict.pkl&#39;</span><span class="p">)</span>
+        <span class="n">best_models</span> <span class="o">=</span> <span class="n">joblib</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">bmf</span><span class="p">)</span>
+        <span class="n">best_model_type</span> <span class="o">=</span> <span class="n">best_models</span><span class="p">[</span><span class="s1">&#39;stage_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">stage</span><span class="p">)][</span><span class="s1">&#39;best_models&#39;</span><span class="p">][</span><span class="n">cluster</span><span class="p">]</span>
+        <span class="c1"># print(&#39;bmt&#39;, best_model_type)</span>
+        <span class="k">if</span> <span class="n">best_model_type</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;cluster&#39;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">model_filename</span> <span class="o">=</span> <span class="s1">&#39;stage&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">stage</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">best_model_type</span> <span class="o">+</span> <span class="s1">&#39;_cluster_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;.pkl&#39;</span>
+            <span class="n">model_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;save_dir&#39;</span><span class="p">],</span> <span class="n">model_filename</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">model_filename</span> <span class="o">=</span> <span class="s1">&#39;stage&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">stage</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">best_model_type</span> <span class="o">+</span> <span class="s1">&#39;.pkl&#39;</span>
+            <span class="n">model_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;save_dir&#39;</span><span class="p">],</span> <span class="n">model_filename</span><span class="p">)</span>
+        <span class="c1"># print(&#39;bmfn&#39;, model_filename)</span>
+        <span class="n">best_model</span> <span class="o">=</span> <span class="n">joblib</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">model_filename</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">best_model</span><span class="p">,</span> <span class="n">best_model_type</span></div>
+
+
+<div class="viewcode-block" id="Utility.isAWS"><a class="viewcode-back" href="../Utility.html#Utility.Utility.isAWS">[docs]</a>    <span class="k">def</span> <span class="nf">isAWS</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Determine if code is running on an AWS EC2 instance.</span>
+
+<span class="sd">        :return: True if running on AWS EC2 instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">m</span> <span class="o">=</span> <span class="n">get_instance_metadata</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">num_retries</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+    
+<div class="viewcode-block" id="Utility.metrics_plot_model"><a class="viewcode-back" href="../Utility.html#Utility.Utility.metrics_plot_model">[docs]</a>    <span class="k">def</span> <span class="nf">metrics_plot_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">results_dict</span><span class="p">,</span> <span class="n">stage</span><span class="o">=</span><span class="s1">&#39;stage_1&#39;</span><span class="p">,</span> <span class="n">score_metric</span><span class="o">=</span><span class="s1">&#39;f1_score&#39;</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">title_prefix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Create a plot showing modeling score for the provided metric from the results_dict.</span>
+
+<span class="sd">        :param results_dict: Dictionary containing model results.</span>
+<span class="sd">        :param stage: Stage of modeling: 1 (binary is traffic) or 2 (level of traffic assuming traffic in stage 1).</span>
+<span class="sd">        :param score_metric: Meetric to plot on (f1_score is the default).</span>
+<span class="sd">        :param sort: Should results be sorted (boolean).</span>
+<span class="sd">        :return: None, a plot is shown in the calling notebook.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">metrics</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">results_dict</span><span class="p">[</span><span class="n">stage</span><span class="p">])</span>
+        <span class="k">if</span> <span class="s1">&#39;best_models&#39;</span> <span class="ow">in</span> <span class="n">metrics</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">metrics</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;best_models&#39;</span><span class="p">],</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># get cluster pct from counts</span>
+        <span class="n">clust_pct_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;cluster_counts&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;cluster_counts&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+        <span class="n">metrics</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;cluster_counts&#39;</span><span class="p">],</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># create row for &#39;all&#39; score and append to df</span>
+        <span class="n">metrics_all_row</span> <span class="o">=</span> <span class="p">(</span><span class="n">metrics</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span> <span class="o">*</span> <span class="n">clust_pct_arr</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">metrics_all_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">metrics_all_row</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
+        <span class="n">metrics_all_df</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;all&#39;</span><span class="p">]</span>
+        <span class="n">metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">metrics_all_df</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">sort</span><span class="p">:</span>
+            <span class="n">metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">xlabels</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="s1">&#39;index&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">xlabels</span><span class="p">))</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;target_first_stage&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">stage</span><span class="o">==</span><span class="s1">&#39;stage_1&#39;</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;target_second_stage&#39;</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">metrics</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">col</span> <span class="o">==</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">metrics</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="n">col</span><span class="p">],</span> <span class="s1">&#39;o--&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">col</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">col</span> <span class="o">!=</span> <span class="s1">&#39;index&#39;</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">metrics</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="n">col</span><span class="p">],</span> <span class="s1">&#39;.:&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">col</span><span class="p">)))</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;model_&#39;</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">),</span> <span class="n">xlabels</span><span class="p">),</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">35</span><span class="p">)</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;model_&#39;</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">),</span> <span class="n">xlabels</span><span class="p">),</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;right&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="n">score_metric</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mf">1.05</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">loc</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">borderaxespad</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+        <span class="n">title_txt</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="s1"> score by model&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">title_prefix</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">title_txt</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;save_dir&#39;</span><span class="p">],</span> <span class="n">title_txt</span><span class="o">+</span><span class="s1">&#39;.png&#39;</span><span class="p">),</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s1">&#39;tight&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">();</span></div>
+
+        
+<div class="viewcode-block" id="Utility.metrics_plot_cluster"><a class="viewcode-back" href="../Utility.html#Utility.Utility.metrics_plot_cluster">[docs]</a>    <span class="k">def</span> <span class="nf">metrics_plot_cluster</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">results_dict</span><span class="p">,</span> <span class="n">stage</span><span class="o">=</span><span class="s1">&#39;stage_1&#39;</span><span class="p">,</span> <span class="n">score_metric</span><span class="o">=</span><span class="s1">&#39;f1_score&#39;</span><span class="p">,</span> <span class="n">sort_by_model</span><span class="o">=</span><span class="s1">&#39;model_avg_baseline&#39;</span><span class="p">,</span> <span class="n">title_prefix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Create a plot showing modeling score for the provided metric by cluster.</span>
+
+<span class="sd">        :param results_dict: Dictionary containing model results.</span>
+<span class="sd">        :param stage: Stage of modeling: 1 (binary is traffic) or 2 (level of traffic assuming traffic in stage 1).</span>
+<span class="sd">        :param score_metric: Meetric to plot on (f1_score is the default).</span>
+<span class="sd">        :param sort_by_model: Model to sort results on.</span>
+<span class="sd">        :return: None, a plot is shown in the calling notebook.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">metrics</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">results_dict</span><span class="p">[</span><span class="n">stage</span><span class="p">])</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;index&#39;</span><span class="p">:</span><span class="s1">&#39;cluster&#39;</span><span class="p">})</span>
+        <span class="n">metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="n">sort_by_model</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># add cluster_pct column</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;cluster_pct&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;cluster_counts&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;cluster_counts&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+        <span class="n">clusts</span> <span class="o">=</span> <span class="p">[</span><span class="n">clust</span> <span class="k">for</span> <span class="n">clust</span> <span class="ow">in</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;cluster&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()]</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">clusts</span><span class="p">))</span>
+        
+        <span class="c1"># see named color list @ https://matplotlib.org/2.0.0/examples/color/named_colors.html</span>
+        <span class="n">color_list</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;red&#39;</span><span class="p">,</span><span class="s1">&#39;gray&#39;</span><span class="p">,</span><span class="s1">&#39;blue&#39;</span><span class="p">,</span><span class="s1">&#39;black&#39;</span><span class="p">,</span><span class="s1">&#39;purple&#39;</span><span class="p">,</span><span class="s1">&#39;green&#39;</span><span class="p">,</span><span class="s1">&#39;darkred&#39;</span><span class="p">,</span><span class="s1">&#39;royalblue&#39;</span><span class="p">,</span><span class="s1">&#39;olive&#39;</span><span class="p">,</span><span class="s1">&#39;yellowgreen&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;forestgreen&#39;</span><span class="p">,</span><span class="s1">&#39;cadetblue&#39;</span><span class="p">,</span><span class="s1">&#39;sienna&#39;</span><span class="p">,</span><span class="s1">&#39;darksalmon&#39;</span><span class="p">]</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;target_first_stage&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">stage</span><span class="o">==</span><span class="s1">&#39;stage_1&#39;</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;target_second_stage&#39;</span><span class="p">]</span>
+
+        <span class="c1"># plot overall and add labels</span>
+        <span class="n">model_cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">mcol</span> <span class="k">for</span> <span class="n">mcol</span> <span class="ow">in</span> <span class="n">metrics</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="nb">str</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">mcol</span><span class="p">,</span> <span class="s1">&#39;model&#39;</span><span class="p">)]</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">model_cols</span><span class="p">):</span>
+            <span class="n">overall_vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">metrics</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">*</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;cluster_pct&#39;</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">))</span>
+            <span class="n">label_txt</span> <span class="o">=</span> <span class="n">col</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;model_&#39;</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">overall_vals</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label_txt</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color_list</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.75</span><span class="p">)</span>
+
+        <span class="c1"># add legend before adding second lines</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+        <span class="c1"># plot clusters</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">model_cols</span><span class="p">):</span>
+            <span class="n">clust_vals</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="n">col</span><span class="p">]</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">clust_vals</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;+&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color_list</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.75</span><span class="p">)</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;cluster&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="n">score_metric</span><span class="p">)</span>
+        <span class="n">title_txt</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="s1"> score by cluster&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">title_prefix</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">title_txt</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">clusts</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_args</span><span class="p">[</span><span class="s1">&#39;save_dir&#39;</span><span class="p">],</span> <span class="n">title_txt</span><span class="o">+</span><span class="s1">&#39;.png&#39;</span><span class="p">),</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s1">&#39;tight&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">();</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">DSE_capstone 0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Ken Kroel.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.2.
+    </div>
+  </body>
+</html>

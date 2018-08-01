@@ -1,0 +1,268 @@
+
+html, body { width: 100%; height: 100%; margin-top:0; margin-left:5; margin-right:10;}
+#mapid, #mapid2 { width: 49.5%; height: 70%; }
+#mapid { float: left; }
+#mapid2 { float: right; }
+#cont { width: 100%; height: 300px;}
+
+#title1, #title2 { width: 49.5%; height: 7%; }
+#title1 { float: left; }
+#title2 { float: right; }
+
+h2 { 
+   position: relative; 
+   top: 0px; 
+   left: 0px; 
+   width: 100%; 
+   margin: 0;
+   text-align: left;
+}
+
+#c3chart_time {
+    float: right;
+    width: calc(100% - 800px);
+    height:  225px;
+}
+
+#c3chart_days {
+    float: right;
+    width: calc(100% - 800px);
+    height: 200px;
+}
+
+#graphid {
+    width: 600px;
+    height: 200px;
+}
+
+#graphsvg {
+    width: 600px;
+    height: 200px;
+}
+
+.graphbackground {
+    fill: #FFEDA0;
+    fill-opacity: 0.25;
+}
+
+.tick line {
+    opacity: 0.2;
+}
+
+h1 {
+    color: #a50f15;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+/*.svgtitle {*/
+/*color: '#FC4E2A';*/
+/*font: Arial, Helvetica, sans-serif;*/
+/*} */
+
+rect.bordered {
+    stroke: #E6E6E6;
+    stroke-width:2px;
+}
+
+text.mono {
+    font-size: 9pt;
+    font-family: Consolas, courier;
+    fill: #aaa;
+}
+
+text.axis-workweek {
+    fill: #000;
+}
+
+text.axis-worktime {
+    fill: #000;
+}
+
+.info {
+    padding: 6px 8px;
+    font: 14px/16px Arial, Helvetica, sans-serif;
+    background: white;
+    background: rgba(255,255,255,0.8);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    border-radius: 5px;
+}
+.info h4 {
+    margin: 0 0 5px;
+    color: #777;
+}
+
+.legend {
+    line-height: 18px;
+    color: #555;
+}
+.legend i {
+    width: 18px;
+    height: 18px;
+    float: left;
+    margin-right: 8px;
+    opacity: 0.7;
+}
+
+// slider
+   .slidecontainer {
+       width: 520px;
+       font: 14px/16px Arial, Helvetica, sans-serif;
+       color: #FC4E2A;
+   }
+
+.slider {
+    -webkit-appearance: none;
+    width: 520px;
+    height: 10px;
+    border-radius: 5px;
+    background: #d3d3d3;
+    outline: none;
+    opacity: 0.7;
+    -webkit-transition: .2s;
+    transition: opacity .2s;
+}
+
+.slider:hover {
+    opacity: 1;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #a50f15;
+    cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #FC4E2A;
+    cursor: pointer;
+}
+
+.axis {
+    font: 10px sans-serif;
+}
+
+.axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+    stroke-width: 1px;
+}
+
+/* heatmap */
+/* disable text selection */
+svg *::selection {
+    background : transparent;
+}
+
+svg *::-moz-selection {
+    background:transparent;
+}
+
+svg *::-webkit-selection {
+    background:transparent;
+}
+rect.selection {
+    stroke          : #333;
+    stroke-dasharray: 4px;
+    stroke-opacity  : 0.5;
+    fill            : transparent;
+    fill-opacity		: 0.
+}
+
+rect.cell-border {
+    stroke: #eee;
+    stroke-width:0.3px;
+}
+
+rect.cell-selected {
+    stroke: rgb(51,102,153);
+    stroke-width:0.5px;
+}
+
+rect.cell-hover {
+    stroke: #F00;
+    stroke-width:0.3px;
+}
+
+text.mono {
+    font-size: 9pt;
+    font-family: Consolas, courier;
+    fill: #aaa;
+}
+
+text.text-selected {
+    fill: #000;
+}
+
+text.text-highlight {
+    fill: #c00;
+}
+text.text-hover {
+    fill: #00C;
+}
+#tooltip {
+    position: absolute;
+    width: 250px;
+    height: auto;
+    padding: 10px;
+    background-color: white;
+    -webkit-border-radius: 10px;
+    -moz-border-radius: 10px;
+    border-radius: 10px;
+    -webkit-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+    -moz-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+    box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+}
+
+#tooltip.hidden {
+    display: none;
+}
+
+#tooltip p {
+    margin: 0;
+    font-family: sans-serif;
+    font-size: 12px;
+    line-height: 20px;
+}
+
+.tooltip-inner {
+    white-space: pre-wrap;
+}
+
+/*#heatmap {
+    float: right;
+    /*overflow: auto;*/
+		/*width: calc(100% - 800px);
+    height:  225px;*/
+    /*width: 960px;  /*960 + 100 + 10*/
+  /*  height: 480px; */ /*480 + 150 + 50
+    /*margin-top: 150px;*/
+    /*margin-bottom: 50px;*/
+    /*margin-left: 100px;*/
+    /*margin-right: 10px;*/
+    /**!*/
+/*}*/
+
+#heatmap, #heatmap2 { width: 49.5%; height: 30%; }
+#heatmap { float: left; }
+#heatmap2 { float: right; }
+
+input[type="text"] {
+     width: 12%; 
+     box-sizing: border-box;
+     -webkit-box-sizing:border-box;
+     -moz-box-sizing: border-box;
+ }
+
+/* .calendar.right {
+  display: none !important;
+}*/
+
